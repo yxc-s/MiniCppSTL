@@ -43,7 +43,17 @@ public:
     vector<value_type, Allocator>& operator =(vector<value_type>&& other) noexcept;
 
     template<typename U>
-    friend bool operator ==(const mstl::vector<U>& lhs, const mstl::vector<U>& rhs);
+    friend bool operator ==(const vector<U>& lhs, const vector<U>& rhs){
+        if (lhs.size() != rhs.size()){
+            return false;
+        }
+        for (decltype(lhs.size()) i = 0; i < lhs.size(); ++i){
+            if (lhs[i] != rhs[i]){
+                return false;
+            }
+        }
+        return true;
+    }
 
     reference_value_type operator[] (size_t p)                { return data_ptr_[p]; }
     const_reference_value_type operator [] (size_t p)   const { return data_ptr_[p]; }
@@ -207,19 +217,6 @@ inline vector<T, Allocator>& vector<T, Allocator>::operator =(vector<T>&& other)
         other.cur_size_ = 0;
     }
     return *this;
-}
-
-template<typename U>
-inline bool operator ==(const mstl::vector<U>& lhs, const mstl::vector<U>& rhs){
-    if (lhs.size() != rhs.size()){
-        return false;
-    }
-    for (decltype(lhs.size()) i = 0; i < lhs.size(); ++i){
-        if (lhs[i] != rhs[i]){
-            return false;
-        }
-    }
-    return true;
 }
 
 template<typename T, typename Allocator>
