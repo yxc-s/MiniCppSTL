@@ -52,4 +52,4 @@ private:
 };
 
 
-END_NAMESPCE
+END_NAMESPACE

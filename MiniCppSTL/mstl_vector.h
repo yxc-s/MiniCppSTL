@@ -2,6 +2,7 @@
 #include "mstl_global.h"
 #include "mstl_allocator.h"
 #include "mstl_memory.h"
+#include "mstl_iterator_base.h"
 
 #include <cstring>    //memset, memcpy
 #include <type_traits>
@@ -13,7 +14,6 @@ NAMESPACE_MSTL
 /*
 TODO:
     emplace_back
-    iterator
 */
 template<typename T, typename Allocator = mstl::Allocator<T>>
 class vector{
@@ -22,50 +22,99 @@ public:
     using pointer_type                =  T*;
     using reference_value_type        =  T&;
     using const_reference_value_type  =  const T&;
-    using size_type                   =  size_t;
-    
+    using size_type                   =  mstl::size_t;
+
+
     explicit vector(size_type size = 0);
     vector(size_type size, const value_type& value);
     vector(const vector<value_type>& other);
     vector(vector<value_type>&& other) noexcept;
+    vector(const std::initializer_list<T>& initializer) noexcept;
     ~vector();
 
     
     void push_back(const T& value);
+    void push_back(T&& value);
 
     void pop_back();
     
-    void reserve(size_t n);
+    void reserve(size_type n);
 
     void fill(const T& value);
+
+    void clear() noexcept;
 
     vector<value_type, Allocator>& operator =(const vector<value_type>& other);
     vector<value_type, Allocator>& operator =(vector<value_type>&& other) noexcept;
 
     template<typename U>
-    friend bool operator ==(const vector<U>& lhs, const vector<U>& rhs){
-        if (lhs.size() != rhs.size()){
-            return false;
+    friend bool operator ==(const mstl::vector<U>& lhs, const mstl::vector<U>& rhs);
+
+    reference_value_type operator[] (size_type p)              { return data_ptr_[p]; }
+    const_reference_value_type operator [] (size_type p) const { return data_ptr_[p]; }
+
+    reference_value_type front()                               { return data_ptr_[0]; }
+    const_reference_value_type front()                   const { return data_ptr_[0]; }
+
+    reference_value_type back()                                { return data_ptr_[cur_size_ - 1]; }
+    const_reference_value_type back()                    const { return data_ptr_[cur_size_ - 1]; }
+
+    size_type size()                            const noexcept { return cur_size_; }
+    size_type capacity()                        const noexcept { return max_size_; }
+    bool empty()                                const noexcept { return static_cast<bool>(cur_size_ > 0); }
+
+    /* Iterator */
+    template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&>
+    class iterator_impl : public iterator_base<iterator_impl<ValueType>, ValueType> {
+    public:
+        using iter_pointer_type     =   PointerType;
+        using iter_reference_type   =   ReferenceType;
+        using iter_difference_type  =   std::ptrdiff_t;
+
+        iterator_impl(iter_pointer_type ptr) : ptr_(ptr) {}
+
+        /* 非虚函数， type根据容器来指定 */
+        iter_reference_type operator*() const { return *ptr_; }
+        iter_pointer_type operator->()  { return ptr_; }
+
+        iterator_impl& operator++() override { ++ptr_; return *this; }
+        iterator_impl operator++(int) override { iterator_impl new_iter = *this; ++(*this); return new_iter; }
+
+        iterator_impl& operator--() override { --ptr_; return *this; }
+        iterator_impl operator--(int) override { iterator_impl new_iter = *this; --(*this); return new_iter; }
+
+        iterator_impl operator+(iter_difference_type offset) const override { return iterator_impl(ptr_ + offset); }
+        iterator_impl operator-(iter_difference_type offset) const override { return iterator_impl(ptr_ - offset); }
+
+        iter_difference_type operator-(const iterator_base<iterator_impl, ValueType>& other) const override { 
+            const iterator_impl& other_iter = static_cast<const iterator_impl&>(other);
+            return ptr_ - other_iter.ptr_; 
         }
-        for (decltype(lhs.size()) i = 0; i < lhs.size(); ++i){
-            if (lhs[i] != rhs[i]){
-                return false;
-            }
+
+        bool operator==(const iterator_base<iterator_impl, ValueType>& other) const override { 
+            const iterator_impl& other_iter = static_cast<const iterator_impl&>(other);
+            return ptr_ == other_iter.ptr_; 
         }
-        return true;
-    }
 
-    reference_value_type operator[] (size_t p)                { return data_ptr_[p]; }
-    const_reference_value_type operator [] (size_t p)   const { return data_ptr_[p]; }
+        bool operator!=(const iterator_base<iterator_impl, ValueType>& other) const override { 
+            const iterator_impl& other_iter = static_cast<const iterator_impl&>(other);
+            return ptr_ != other_iter.ptr_; 
+        }
 
-    reference_value_type front()                              { return data_ptr_[0]; }
-    const_reference_value_type front()                  const { return data_ptr_[0]; }
+    private:
+        iter_pointer_type ptr_;
+    };
 
-    reference_value_type back()                               { return data_ptr_[cur_size_ - 1]; }
-    const_reference_value_type back()                   const { return data_ptr_[cur_size_ - 1]; }
+    using iterator = iterator_impl<T>;
+    using const_iterator = iterator_impl<const T, const T*, const T&>;
 
-    size_type size()                           const noexcept { return cur_size_; }
+
+    iterator begin() { return iterator(data_ptr_); }
+    iterator end()   { return iterator(data_ptr_ + cur_size_); }
+    const_iterator cbegin() { return const_iterator(data_ptr_); } 
+    const_iterator cend() { return const_iterator(data_ptr_ + cur_size_); }
     
+
 private:
     mstl::unique_ptr<Allocator>        allocator_;
     pointer_type                       data_ptr_;
@@ -137,6 +186,19 @@ inline vector<T, Allocator>::vector(vector<T>&& other) noexcept:
     other.data_ptr_ = nullptr;
 }
 
+template<typename T, typename Allocator>
+inline vector<T, Allocator>::vector(const std::initializer_list<T>& initializer) noexcept:
+    allocator_(new Allocator),
+    data_ptr_(allocator_->allocate(static_cast<size_type>(initializer.size()))),
+    max_size_(static_cast<size_type>(initializer.size())),
+    cur_size_(static_cast<size_type>(initializer.size()))
+{
+    size_type p = 0;
+    for (const auto& value : initializer){
+        data_ptr_[p ++] = value;
+    }
+}
+        
 
 template<typename T, typename Allocator>
 inline vector<T, Allocator>::~vector(){
@@ -173,6 +235,14 @@ inline void vector<T, Allocator>::fill(const T& value){
     for (size_type i = 0; i < cur_size_; ++i){
         data_ptr_[i] = value;
     }
+}
+
+template<typename T, typename Allocator>
+inline void vector<T, Allocator>::clear() noexcept{
+    for (size_t i = 0; i < cur_size_; ++i){
+        data_ptr_[i].~T();
+    }
+    cur_size_ = 0;
 }
 
 template<typename T, typename Allocator>
@@ -219,12 +289,35 @@ inline vector<T, Allocator>& vector<T, Allocator>::operator =(vector<T>&& other)
     return *this;
 }
 
+template<typename T>
+inline bool operator ==(const mstl::vector<T>& lhs, const mstl::vector<T>& rhs){
+    if (lhs.size() != rhs.size()){
+        return false;
+    }
+    for (decltype(lhs.size()) i = 0; i < lhs.size(); ++i){
+        if (lhs[i] != rhs[i]){
+            return false;
+        }
+    }
+    return true;
+}
+
+
 template<typename T, typename Allocator>
 inline void vector<T, Allocator>::push_back(const T& value){
     if (cur_size_ == max_size_){
         this->reserve((max_size_ > 0 ? (max_size_ << 1) : 2));
     }
     new (data_ptr_ + cur_size_) T(value);
+    ++cur_size_;
+}
+
+template<typename T, typename Allocator>
+inline void vector<T, Allocator>::push_back(T&& value){
+    if (cur_size_ == max_size_){
+        this->reserve((max_size_ > 0 ? (max_size_ << 1) : 2));
+    }
+    new (data_ptr_ + cur_size_) T(std::move(value));
     ++cur_size_;
 }
 
@@ -238,4 +331,4 @@ inline void vector<T, Allocator>::pop_back(){
     }
 }
 
-END_NAMESPCE
+END_NAMESPACE

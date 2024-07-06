@@ -7,7 +7,7 @@ NAMESPACE_MSTL
 template <class T>
 class Allocator {
 public:
-    using size_type          =   std::size_t;
+    using size_type          =   mstl::size_t;
     using value_type         =   T;
     using pointer_type       =   T*;
     using const_pointer_type =   const T*;
@@ -47,4 +47,4 @@ inline void Allocator<T>::deallocate(pointer_type p, size_type size){
 }
 
 
-END_NAMESPCE
+END_NAMESPACE
