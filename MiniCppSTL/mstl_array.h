@@ -4,14 +4,13 @@
 #include "mstl_memory.h"
 #include "mstl_iterator_base.h"
 
-#include <type_traits>
+#include <type_traits>       //std::is_trivially_copyable
 
 NAMESPACE_MSTL
 
 /*
 TODO:
-    initialize_list
-    iterator
+
 */
 
 template <typename T, const mstl::size_t ARRAY_SIZE>

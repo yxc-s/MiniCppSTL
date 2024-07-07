@@ -1,6 +1,6 @@
 #pragma once
 #include "mstl_global.h"
-#include <limits>
+#include <limits>            //std::numeric_limits
 
 NAMESPACE_MSTL
 

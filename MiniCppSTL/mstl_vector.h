@@ -4,9 +4,9 @@
 #include "mstl_memory.h"
 #include "mstl_iterator_base.h"
 
-#include <cstring>    //memset, memcpy
-#include <type_traits>
-#include <utility>
+#include <cstring>           //memset, memcpy
+#include <type_traits>       //std::is_trivially_copyable
+#include <utility>           //std::move
 
 
 NAMESPACE_MSTL
