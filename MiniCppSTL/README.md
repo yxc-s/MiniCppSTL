@@ -1,6 +1,6 @@
 # MiniCppSTL
 
-A Mini STL version implementation. 
+A Mini STL implementation version. 
 Some featrues need C++17 like : if constexpr
 
 
