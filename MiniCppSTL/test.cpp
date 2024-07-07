@@ -4,9 +4,11 @@
 #include <array>
 #include <assert.h>
 #include <vector>
-
+#include "mstl_pair.h"
 using namespace std;
 int main(){
+
+    //vector
 #if 0
     mstl::vector<int> my_vec_a(10, -1);
     mstl::vector<int> my_vec_b(10, -1);
@@ -45,7 +47,8 @@ int main(){
 #endif
 
 
-#if 1
+//array
+#if 0
     mstl::array<int, 23> t {1,2,3};
    // t[0] = 5;
     for (int i = 0; i < t.size(); ++i){
@@ -60,7 +63,7 @@ int main(){
         cout << x << ' ';
     }
     cout << endl;
-
+    vector<int> a;
     {int cnt = 0;for (auto&x : t){
         x = cnt ++;
     }}
@@ -69,11 +72,16 @@ int main(){
     }
     cout << endl;
 
-    
+#endif
+
+//pair
+#if 0
+    mstl::pair<int, int> a{2, 2};
+    mstl::pair<int, int> b{2, 2};
+    cout << ( a <= b);
 #endif
 
     
 
-    
     return 0;
 }

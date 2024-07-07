@@ -14,6 +14,9 @@ NAMESPACE_MSTL
 /*
 TODO:
     emplace_back
+    erase
+
+    重载运算符
 */
 template<typename T, typename Allocator = mstl::Allocator<T>>
 class vector{
