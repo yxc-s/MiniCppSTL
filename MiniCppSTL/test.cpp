@@ -33,6 +33,15 @@ int main(){
     }
     auto it = my_vec_c.cbegin();
     //*it = 3;
+    {   char c = 'g';
+        for (auto& t : my_vec_c){
+            t = c ++;
+        }
+    }
+    for (auto it = my_vec_c.rbegin(); it != my_vec_c.rend(); ++it){
+        cout << *it << ' ';
+    }
+    cout << endl;
 #endif
 
 
@@ -51,9 +60,19 @@ int main(){
         cout << x << ' ';
     }
     cout << endl;
+
+    {int cnt = 0;for (auto&x : t){
+        x = cnt ++;
+    }}
+    for (auto it = t.crbegin(); it != t.crend(); ++it){
+        cout << *it << ' ';
+    }
+    cout << endl;
+
+    
 #endif
 
-
+    
 
     
     return 0;

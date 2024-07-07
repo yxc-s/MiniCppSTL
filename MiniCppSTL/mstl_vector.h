@@ -64,8 +64,8 @@ public:
     bool empty()                                const noexcept { return static_cast<bool>(cur_size_ > 0); }
 
     /* Iterator */
-    template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&>
-    class iterator_impl : public iterator_base<iterator_impl<ValueType>, ValueType> {
+    template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
+    class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
     public:
         using iter_pointer_type     =   PointerType;
         using iter_reference_type   =   ReferenceType;
@@ -73,18 +73,64 @@ public:
 
         iterator_impl(iter_pointer_type ptr) : ptr_(ptr) {}
 
-        /* 非虚函数， type根据容器来指定 */
+        /* 派生类函数， type根据模板参数来指定 */
         iter_reference_type operator*() const { return *ptr_; }
         iter_pointer_type operator->()  { return ptr_; }
 
-        iterator_impl& operator++() override { ++ptr_; return *this; }
-        iterator_impl operator++(int) override { iterator_impl new_iter = *this; ++(*this); return new_iter; }
+        iterator_impl& operator++() override { 
+            if constexpr (IS_REVERSE){
+                -- ptr_;
+            }
+            else{
+                ++ptr_; 
+            }
+            return *this; 
+        }
+        iterator_impl operator++(int) override { 
+            iterator_impl new_iter = *this; 
+            if constexpr (IS_REVERSE){
+                --(*this);
+            }
+            else{
+                ++(*this); 
+            }
+            return new_iter; 
+        }
 
-        iterator_impl& operator--() override { --ptr_; return *this; }
-        iterator_impl operator--(int) override { iterator_impl new_iter = *this; --(*this); return new_iter; }
+        iterator_impl& operator--() override { 
+            if constexpr (IS_REVERSE){
+                ++ptr_;
+            }
+            else{
+                --ptr_; 
+            }
+            return *this; 
+        }
+        iterator_impl operator--(int) override { 
+            iterator_impl new_iter = *this;
+            if constexpr (IS_REVERSE) {
+                ++(*this);
+            } else {
+                --(*this);
+            }
+            return new_iter; 
+        }
 
-        iterator_impl operator+(iter_difference_type offset) const override { return iterator_impl(ptr_ + offset); }
-        iterator_impl operator-(iter_difference_type offset) const override { return iterator_impl(ptr_ - offset); }
+        iterator_impl operator+(iter_difference_type offset) const override { 
+            if constexpr (IS_REVERSE) {
+                return iterator_impl(ptr_ - offset);
+            } else {
+                return iterator_impl(ptr_ + offset);
+            }
+        }
+
+        iterator_impl operator-(iter_difference_type offset) const override { 
+            if constexpr (IS_REVERSE) {
+                return iterator_impl(ptr_ + offset);
+            } else {
+                return iterator_impl(ptr_ - offset);
+            }
+        }
 
         iter_difference_type operator-(const iterator_base<iterator_impl, ValueType>& other) const override { 
             const iterator_impl& other_iter = static_cast<const iterator_impl&>(other);
@@ -107,13 +153,18 @@ public:
 
     using iterator = iterator_impl<T>;
     using const_iterator = iterator_impl<const T, const T*, const T&>;
-
+    using reverse_iterator = iterator_impl<T, T*, T&, true>;
+    using const_reverse_iterator = iterator_impl<const T, const T*, const T&, true>;
 
     iterator begin() { return iterator(data_ptr_); }
     iterator end()   { return iterator(data_ptr_ + cur_size_); }
     const_iterator cbegin() { return const_iterator(data_ptr_); } 
     const_iterator cend() { return const_iterator(data_ptr_ + cur_size_); }
     
+    reverse_iterator rbegin() { return reverse_iterator(data_ptr_ + cur_size_ - 1); }
+    reverse_iterator rend() { return reverse_iterator(data_ptr_ - 1); }
+    const_reverse_iterator crbegin() { return const_reverse_iterator(data_ptr_ + cur_size_ - 1); }
+    const_reverse_iterator crend() { return const_reverse_iterator(data_ptr_ - 1); }
 
 private:
     mstl::unique_ptr<Allocator>        allocator_;
