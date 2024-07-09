@@ -75,6 +75,7 @@ public:
         using iter_reference_type   =   ReferenceType;
         using iter_difference_type  =   std::ptrdiff_t;
 
+        using this_type = iterator_impl<ValueType, iter_pointer_type, iter_reference_type, IS_REVERSE>;
         iterator_impl(iter_pointer_type ptr) : ptr_(ptr) {}
 
         /* 派生类函数， type根据模板参数来指定 */
@@ -136,19 +137,32 @@ public:
             }
         }
 
-        iter_difference_type operator-(const iterator_base<iterator_impl, ValueType>& other) const override { 
-            const iterator_impl& other_iter = static_cast<const iterator_impl&>(other);
-            return ptr_ - other_iter.ptr_; 
+        iter_difference_type operator-(const this_type& other) const override { 
+            return ptr_ - other.ptr_; 
         }
 
-        bool operator==(const iterator_base<iterator_impl, ValueType>& other) const override { 
-            const iterator_impl& other_iter = static_cast<const iterator_impl&>(other);
-            return ptr_ == other_iter.ptr_; 
+        bool operator==(const this_type& other) const override { 
+            return ptr_ == other.ptr_; 
         }
 
-        bool operator!=(const iterator_base<iterator_impl, ValueType>& other) const override { 
-            const iterator_impl& other_iter = static_cast<const iterator_impl&>(other);
-            return ptr_ != other_iter.ptr_; 
+        bool operator!=(const this_type& other) const override { 
+            return ptr_ != other.ptr_; 
+        }
+
+        bool operator <(const this_type& other) const{
+            return ptr_ < other.ptr_;
+        }
+        
+        bool operator <=(const this_type& other) const{
+            return ptr_ <= other.ptr_;
+        }
+
+        bool operator >(const this_type& other) const{
+            return !(*this <= other);
+        }
+
+        bool operator >=(const this_type& other) const{
+            return !(*this < other);
         }
 
     private:

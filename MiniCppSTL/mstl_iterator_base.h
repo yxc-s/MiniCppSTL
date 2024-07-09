@@ -23,10 +23,10 @@ public:
     virtual Derived operator+(iter_difference_type offset) const = 0;
     virtual Derived operator-(iter_difference_type offset) const = 0;
 
-    virtual iter_difference_type operator-(const iterator_base& other) const = 0;
+    virtual iter_difference_type operator-(const Derived& other) const = 0;
 
-    virtual bool operator==(const iterator_base& other) const = 0;
-    virtual bool operator!=(const iterator_base& other) const = 0;
+    virtual bool operator==(const Derived& other) const = 0;
+    virtual bool operator!=(const Derived& other) const = 0;
 };
 
 

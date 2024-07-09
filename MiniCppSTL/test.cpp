@@ -1,9 +1,6 @@
 #include "mstl_vector.h"
 #include "mstl_array.h"
-#include <iostream>
-#include <array>
-#include <assert.h>
-#include <vector>
+#include <bits/stdc++.h>
 #include "mstl_pair.h"
 #include "mstl_algorithm.h"
 
@@ -12,7 +9,7 @@ using namespace std;
 int main(){
 
     //vector
-#if 1
+#if 0
 {
     mstl::vector<int> my_vec_a(10, -1);
     mstl::vector<int> my_vec_b(10, -1);
@@ -62,7 +59,7 @@ int main(){
 
 
 //array
-#if 0
+#if 1
 {
     mstl::array<int, 23> t {1,2,3};
    // t[0] = 5;
@@ -97,7 +94,12 @@ int main(){
     cout << ( a_p <= ba_p);
 }
 #endif
-
+    {
+        mstl::vector<int> a{2,3,4,5};
+        auto it = a.begin();
+        auto rt = mstl::next(it);
+        cout << (a.end() - it) << endl;
+    }
     
 
     return 0;
