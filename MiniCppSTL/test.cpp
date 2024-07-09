@@ -1,8 +1,12 @@
+#include <iostream>
 #include "mstl_vector.h"
 #include "mstl_array.h"
-#include <bits/stdc++.h>
+
 #include "mstl_pair.h"
 #include "mstl_algorithm.h"
+#include <bits/stdc++.h>
+
+
 
 
 using namespace std;
@@ -75,7 +79,7 @@ int main(){
         cout << x << ' ';
     }
     cout << endl;
-    vector<int> a;
+    mstl::vector<int> a;
     {int cnt = 0;for (auto&x : t){
         x = cnt ++;
     }}
@@ -95,10 +99,14 @@ int main(){
 }
 #endif
     {
-        mstl::vector<int> a{2,3,4,5};
+        vector<int> a{5,4,3,2,1};
         auto it = a.begin();
         auto rt = mstl::next(it);
         cout << (a.end() - it) << endl;
+        mstl::sort(a.begin(), a.end());
+        for (auto x : a){cout << x << ' ';}
+        cout << endl;
+        //std::iter_swap();
     }
     
 

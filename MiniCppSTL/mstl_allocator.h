@@ -9,8 +9,8 @@ class Allocator {
 public:
     using size_type          =   mstl::size_t;
     using value_type         =   T;
-    using pointer_type       =   T*;
-    using const_pointer_type =   const T*;
+    using pointer            =   T*;
+    using const_pointer      =   const T*;
     using difference_type    =   std::ptrdiff_t;
 
     
@@ -20,8 +20,8 @@ public:
     Allocator(const Allocator<U>&) noexcept {}
     ~Allocator() noexcept {}
 
-    pointer_type allocate(size_type size, const void* hint = 0);
-    void deallocate(pointer_type p, size_type size);
+    pointer allocate(size_type size, const void* hint = 0);
+    void deallocate(pointer p, size_type size);
 
     template <class U>
     struct rebind {
@@ -29,20 +29,20 @@ public:
     };
 
     // Return address of values
-    pointer_type address(value_type& value) const { return &value; }
-    const_pointer_type address(const value_type& value) const { return &value; }
+    pointer address(value_type& value) const { return &value; }
+    const_pointeraddress(const value_type& value) const { return &value; }
     
     size_type max_size() const noexcept { return std::numeric_limits<size_type>::max() / sizeof(value_type); }
 };
 
 
 template<typename T>
-inline typename Allocator<T>::pointer_type Allocator<T>::allocate(size_type size, const void* hint) {
-    return static_cast<pointer_type>(::operator new(size * sizeof(T)));
+inline typename Allocator<T>::pointer Allocator<T>::allocate(size_type size, const void* hint) {
+    return static_cast<pointer>(::operator new(size * sizeof(T)));
 }
 
 template<typename T>
-inline void Allocator<T>::deallocate(pointer_type p, size_type size){
+inline void Allocator<T>::deallocate(pointer p, size_type size){
     ::operator delete((void*) p); 
 }
 

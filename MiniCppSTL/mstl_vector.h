@@ -22,12 +22,12 @@ TODO:
 template<typename T, typename Allocator = mstl::Allocator<T>>
 class vector{
 public:
-    using value_type                  =  T;
-    using pointer_type                =  T*;
-    using reference_value_type        =  T&;
-    using const_reference_value_type  =  const T&;
-    using size_type                   =  mstl::size_t;
-
+    /* STL format */
+    using value_type       =  T;
+    using pointer          =  T*;
+    using reference        =  T&;
+    using const_reference  =  const T&;
+    using size_type        =  mstl::size_t;
 
     explicit vector(size_type size = 0);
     vector(size_type size, const value_type& value);
@@ -54,14 +54,14 @@ public:
     template<typename U>
     friend bool operator ==(const mstl::vector<U>& lhs, const mstl::vector<U>& rhs);
 
-    reference_value_type operator[] (size_type p)              { return data_ptr_[p]; }
-    const_reference_value_type operator [] (size_type p) const { return data_ptr_[p]; }
+    reference operator[] (size_type p)              { return data_ptr_[p]; }
+    const_reference operator [] (size_type p) const { return data_ptr_[p]; }
 
-    reference_value_type front()                               { return data_ptr_[0]; }
-    const_reference_value_type front()                   const { return data_ptr_[0]; }
+    reference front()                               { return data_ptr_[0]; }
+    const_reference front()                   const { return data_ptr_[0]; }
 
-    reference_value_type back()                                { return data_ptr_[cur_size_ - 1]; }
-    const_reference_value_type back()                    const { return data_ptr_[cur_size_ - 1]; }
+    reference back()                                { return data_ptr_[cur_size_ - 1]; }
+    const_reference back()                    const { return data_ptr_[cur_size_ - 1]; }
 
     size_type size()                            const noexcept { return cur_size_; }
     size_type capacity()                        const noexcept { return max_size_; }
@@ -71,16 +71,17 @@ public:
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
     public:
-        using iter_pointer_type     =   PointerType;
-        using iter_reference_type   =   ReferenceType;
-        using iter_difference_type  =   std::ptrdiff_t;
+        using value_type       =   ValueType;
+        using pointer          =   PointerType;
+        using reference        =   ReferenceType;
+        using difference_type  =   std::ptrdiff_t;
 
-        using this_type = iterator_impl<ValueType, iter_pointer_type, iter_reference_type, IS_REVERSE>;
-        iterator_impl(iter_pointer_type ptr) : ptr_(ptr) {}
+        using this_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
+        iterator_impl(pointer ptr) : ptr_(ptr) {}
 
         /* 派生类函数， type根据模板参数来指定 */
-        iter_reference_type operator*() const { return *ptr_; }
-        iter_pointer_type operator->()  { return ptr_; }
+        reference operator*() const { return *ptr_; }
+        pointer operator->()  { return ptr_; }
 
         iterator_impl& operator++() override { 
             if constexpr (IS_REVERSE){
@@ -121,7 +122,7 @@ public:
             return new_iter; 
         }
 
-        iterator_impl operator+(iter_difference_type offset) const override { 
+        iterator_impl operator+(difference_type offset) const override { 
             if constexpr (IS_REVERSE) {
                 return iterator_impl(ptr_ - offset);
             } else {
@@ -129,7 +130,7 @@ public:
             }
         }
 
-        iterator_impl operator-(iter_difference_type offset) const override { 
+        iterator_impl operator-(difference_type offset) const override { 
             if constexpr (IS_REVERSE) {
                 return iterator_impl(ptr_ + offset);
             } else {
@@ -137,7 +138,7 @@ public:
             }
         }
 
-        iter_difference_type operator-(const this_type& other) const override { 
+        difference_type operator-(const this_type& other) const override { 
             return ptr_ - other.ptr_; 
         }
 
@@ -166,7 +167,7 @@ public:
         }
 
     private:
-        iter_pointer_type ptr_;
+        pointer ptr_;
     };
 
     using iterator = iterator_impl<T>;
@@ -186,7 +187,7 @@ public:
 
 private:
     mstl::unique_ptr<Allocator>        allocator_;
-    pointer_type                       data_ptr_;
+    pointer                       data_ptr_;
     size_type                          cur_size_;
     size_type                          max_size_;
     
@@ -281,7 +282,7 @@ inline vector<T, Allocator>::~vector(){
 template<typename T, typename Allocator>
 inline void vector<T, Allocator>::reserve(size_type size){
     if (size > max_size_){
-        pointer_type new_pointer = allocator_->allocate(size);
+        pointer new_pointer = allocator_->allocate(size);
         if constexpr (std::is_trivially_copyable<T>::value) {
             memcpy(new_pointer, data_ptr_, sizeof(T) * cur_size_);
         }

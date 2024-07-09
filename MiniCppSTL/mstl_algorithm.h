@@ -2,7 +2,7 @@
 
 #include "mstl_global.h"
 #include "mstl_utility.h"
-
+#include "mstl_algorithm_base.h"
 
 NAMESPACE_MSTL
 
@@ -91,7 +91,8 @@ template <typename ITER_TYPE>
 ITER_TYPE upper_bound(ITER_TYPE begin, ITER_TYPE end);
 
 template <typename ITER_TYPE>
-void sort(ITER_TYPE begin, ITER_TYPE end);
-
+void sort(ITER_TYPE begin, ITER_TYPE end) {
+    mstl::insertion_sort_impl<ITER_TYPE,  typename ITER_TYPE::value_type>(begin, end);
+}
 
 END_NAMESPACE

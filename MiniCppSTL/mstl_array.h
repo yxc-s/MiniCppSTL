@@ -16,11 +16,12 @@ TODO:
 template <typename T, const mstl::size_t ARRAY_SIZE>
 class array{
 public:
-    using value_type                  =  T;
-    using pointer_type                =  T*;
-    using reference_value_type        =  T&;
-    using const_reference_value_type  =  const T&;
-    using size_type                   =  mstl::size_t;
+    /* STL format */
+    using value_type       =  T;
+    using pointer          =  T*;
+    using reference        =  T&;
+    using const_reference  =  const T&;
+    using size_type        =  mstl::size_t;
     
 
     constexpr array() noexcept: data_ptr_{}{
@@ -52,14 +53,14 @@ public:
         }
     }
 
-    constexpr reference_value_type operator[] (size_type p)                noexcept { return data_ptr_[p]; }
-    constexpr const_reference_value_type operator [] (size_type p)   const noexcept { return data_ptr_[p]; }
+    constexpr reference operator[] (size_type p)                noexcept { return data_ptr_[p]; }
+    constexpr const_reference operator [] (size_type p)   const noexcept { return data_ptr_[p]; }
 
-    constexpr reference_value_type front()                                 noexcept { return data_ptr_[0]; }
-    constexpr const_reference_value_type front()                     const noexcept { return data_ptr_[0]; }
+    constexpr reference front()                                 noexcept { return data_ptr_[0]; }
+    constexpr const_reference front()                     const noexcept { return data_ptr_[0]; }
 
-    constexpr reference_value_type back()                                  noexcept { return data_ptr_[ARRAY_SIZE - 1]; }
-    constexpr const_reference_value_type back()                      const noexcept { return data_ptr_[ARRAY_SIZE - 1]; }
+    constexpr reference back()                                  noexcept { return data_ptr_[ARRAY_SIZE - 1]; }
+    constexpr const_reference back()                      const noexcept { return data_ptr_[ARRAY_SIZE - 1]; }
 
     constexpr size_type size() const noexcept { return ARRAY_SIZE; }
 
@@ -67,17 +68,18 @@ public:
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
     public:
-        using iter_pointer_type     =   PointerType;
-        using iter_reference_type   =   ReferenceType;
-        using iter_difference_type  =   std::ptrdiff_t;
+        using value_type       =   ValueType;
+        using pointer          =   PointerType;
+        using reference        =   ReferenceType;
+        using difference_type  =   std::ptrdiff_t;
+        
+        using this_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
 
-        using this_type = iterator_impl<ValueType, iter_pointer_type, iter_reference_type, IS_REVERSE>;
-
-        iterator_impl(iter_pointer_type ptr) : ptr_(ptr) {}
+        iterator_impl(pointer ptr) : ptr_(ptr) {}
 
         /* 派生类函数， type根据模板参数来指定 */
-        iter_reference_type operator*() const { return *ptr_; }
-        iter_pointer_type operator->()  { return ptr_; }
+        reference operator*() const { return *ptr_; }
+        pointer operator->()  { return ptr_; }
 
         iterator_impl& operator++() override { 
             if constexpr (IS_REVERSE){
@@ -119,7 +121,7 @@ public:
             return new_iter; 
         }
 
-        iterator_impl operator+(iter_difference_type offset) const override { 
+        iterator_impl operator+(difference_type offset) const override { 
             if constexpr (IS_REVERSE) {
                 return iterator_impl(ptr_ - offset);
             } else {
@@ -127,7 +129,7 @@ public:
             }
         }
 
-        iterator_impl operator-(iter_difference_type offset) const override { 
+        iterator_impl operator-(difference_type offset) const override { 
             if constexpr (IS_REVERSE) {
                 return iterator_impl(ptr_ + offset);
             } else {
@@ -135,7 +137,7 @@ public:
             }
         }
 
-        iter_difference_type operator-(const this_type& other) const override { 
+        difference_type operator-(const this_type& other) const override { 
             return ptr_ - other.ptr_; 
         }
 
@@ -164,7 +166,7 @@ public:
         }
 
     private:
-        iter_pointer_type ptr_;
+        pointer ptr_;
     };
 
     using iterator = iterator_impl<T>;
