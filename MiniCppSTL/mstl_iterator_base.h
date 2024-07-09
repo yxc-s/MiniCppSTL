@@ -29,4 +29,17 @@ public:
     virtual bool operator!=(const iterator_base& other) const = 0;
 };
 
+
+/* next iterator */
+template <typename ITER_TYPE>
+inline ITER_TYPE next(const ITER_TYPE& iter){
+    return iter + 1;
+}
+
+/* previous iterator */
+template <typename ITER_TYPE>
+inline ITER_TYPE prev(const ITER_TYPE& iter){
+    return iter - 1;
+}
+
 END_NAMESPACE

@@ -26,11 +26,9 @@ DataStructure:
 Algorithms:
   erase
   sort
-  fill
   unique
   lower_bound
   upper_bound
-  next
-  prev
+
 
   

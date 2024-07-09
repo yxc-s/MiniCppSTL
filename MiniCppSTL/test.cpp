@@ -5,11 +5,15 @@
 #include <assert.h>
 #include <vector>
 #include "mstl_pair.h"
+#include "mstl_algorithm.h"
+
+
 using namespace std;
 int main(){
 
     //vector
-#if 0
+#if 1
+{
     mstl::vector<int> my_vec_a(10, -1);
     mstl::vector<int> my_vec_b(10, -1);
     my_vec_b.fill(-2);
@@ -44,11 +48,22 @@ int main(){
         cout << *it << ' ';
     }
     cout << endl;
+
+    cout << *mstl::max_element(my_vec_c.begin(), my_vec_c.end()) << endl;
+    cout << *mstl::min_element(my_vec_c.begin(), my_vec_c.end()) << endl;
+
+    {
+        auto it = my_vec_c.begin();
+        auto rt = mstl::next(it);
+        cout << *rt << endl;
+    }
+}
 #endif
 
 
 //array
 #if 0
+{
     mstl::array<int, 23> t {1,2,3};
    // t[0] = 5;
     for (int i = 0; i < t.size(); ++i){
@@ -71,14 +86,16 @@ int main(){
         cout << *it << ' ';
     }
     cout << endl;
-
+}
 #endif
 
 //pair
 #if 0
-    mstl::pair<int, int> a{2, 2};
-    mstl::pair<int, int> b{2, 2};
-    cout << ( a <= b);
+{
+    mstl::pair<int, int> a_p{2, 2};
+    mstl::pair<int, int> ba_p{2, 2};
+    cout << ( a_p <= ba_p);
+}
 #endif
 
     

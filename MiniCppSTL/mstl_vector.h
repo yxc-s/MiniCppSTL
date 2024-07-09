@@ -3,10 +3,11 @@
 #include "mstl_allocator.h"
 #include "mstl_memory.h"
 #include "mstl_iterator_base.h"
+#include "mstl_utility.h"    
+
 
 #include <cstring>           //memset, memcpy
 #include <type_traits>       //std::is_trivially_copyable
-#include <utility>           //std::move
 
 
 NAMESPACE_MSTL
@@ -273,7 +274,7 @@ inline void vector<T, Allocator>::reserve(size_type size){
         else{
             for (size_type i = 0; i < cur_size_; ++i) {
                 /* Placement New (new (address) T(constructor_args)) */
-                new(new_pointer + i) T(std::move(data_ptr_[i]));
+                new(new_pointer + i) T(mstl::move(data_ptr_[i]));
                 data_ptr_[i].~T();
             }
         }
@@ -371,7 +372,7 @@ inline void vector<T, Allocator>::push_back(T&& value){
     if (cur_size_ == max_size_){
         this->reserve((max_size_ > 0 ? (max_size_ << 1) : 2));
     }
-    new (data_ptr_ + cur_size_) T(std::move(value));
+    new (data_ptr_ + cur_size_) T(mstl::move(value));
     ++cur_size_;
 }
 

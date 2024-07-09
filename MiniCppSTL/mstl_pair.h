@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mstl_global.h"
+#include <type_traits>      //remove_reference
 
 NAMESPACE_MSTL
 
@@ -74,8 +75,11 @@ inline bool operator >=(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs
     return !(lhs < rhs);
 }
 
-
-
+/* make pair! */
+template<typename T, typename U>
+inline mstl::pair<T, U> make_pair(const T& f, const U& s){
+    return mstl::pair<T, U>{f, s};
+}
 
 
 END_NAMESPACE
