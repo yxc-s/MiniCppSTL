@@ -34,9 +34,15 @@ public:
     vector(const vector<value_type>& other);
     vector(vector<value_type>&& other) noexcept;
     vector(const std::initializer_list<T>& initializer) noexcept;
+
+    /* 迭代器构造 */
+    template<typename InputIterator, typename = typename std::enable_if<
+        std::is_same_v<typename InputIterator::value_type, T>>::type>
+    vector(const InputIterator& begin, const InputIterator& end);
+
     ~vector();
 
-    
+
     void push_back(const T& value);
     void push_back(T&& value);
 
@@ -269,6 +275,19 @@ inline vector<T, Allocator>::vector(const std::initializer_list<T>& initializer)
     }
 }
         
+/* 迭代器构造 */
+template<typename T, typename Allocator>
+template<typename InputIterator, typename >
+inline vector<T, Allocator>::vector(const InputIterator& begin, const InputIterator& end): 
+    allocator_(new Allocator{}),
+    data_ptr_(allocator_->allocate(end - begin + 1)),
+    cur_size_(end - begin + 1),
+    max_size_(end - begin + 1)
+{
+    for (size_t i = 0; i < cur_size_; ++i){
+        data_ptr_[i] = *(begin + i);
+    }
+}
 
 template<typename T, typename Allocator>
 inline vector<T, Allocator>::~vector(){
