@@ -31,38 +31,24 @@ public:
 };
 
 
-/* next iterator */
-template <typename ITER_TYPE>
-ITER_TYPE next(const ITER_TYPE& iter);
+// /* next iterator */
+// template <typename ITER_TYPE>
+// inline ITER_TYPE next(const ITER_TYPE& iter){
+//     return iter + 1;
+// }
 
-/* previous iterator */
-template <typename ITER_TYPE>
-ITER_TYPE prev(const ITER_TYPE& iter);
+// /* previous iterator */
+// template <typename ITER_TYPE>
+// inline ITER_TYPE prev(const ITER_TYPE& iter){
+//     return iter - 1;
+// }
 
-/* swap iter data */
-template<typename ITER_TYPE>
-void iter_swap(ITER_TYPE& lhs, ITER_TYPE& rhs);
-
-
-/* next iterator */
-template <typename ITER_TYPE>
-inline ITER_TYPE next(const ITER_TYPE& iter){
-    return iter + 1;
-}
-
-/* previous iterator */
-template <typename ITER_TYPE>
-inline ITER_TYPE prev(const ITER_TYPE& iter){
-    return iter - 1;
-}
-
-/* swap iter data */
-/* 这里如果使用mstl_alogirhm.h 中的swap，会造成循环引用，头文件包含出问题 */
-template<typename ITER_TYPE>
-inline void iter_swap(ITER_TYPE& lhs, ITER_TYPE& rhs){
-    auto value = *lhs;
-    *lhs = *rhs;
-    *rhs = value;
-}
+// /* swap iter data */
+// template<typename ITER_TYPE>
+// inline void iter_swap(ITER_TYPE& lhs, ITER_TYPE& rhs){
+//     auto value = *lhs;
+//     *lhs = *rhs;
+//     *rhs = value;
+// }
 
 END_NAMESPACE

@@ -2,7 +2,7 @@
 
 #include <initializer_list> /* 因为{}与编译器绑定，所以不再自己实现初始化列表 */
 #include <cstddef>          /* std::size_t */
-
+//#include "mstl_iterator_base.h"
 
 #define NAMESPACE_MSTL namespace mstl{
 #define END_NAMESPACE   }
@@ -49,5 +49,60 @@ NAMESPACE_MSTL
 #else 
     using size_t = typename std::size_t;
 #endif
+
+
+/* 小的元素在左边 */
+template<typename T>
+struct less{
+    bool operator() (const T& lhs, const T& rhs) const{
+        return lhs < rhs;
+    }
+};
+
+/* 大的元素在左边 */
+template<typename T>
+struct greater{
+    bool operator() (const T& lhs, const T& rhs){
+        return lhs > rhs;
+    }
+};
+
+/* 移动语义 */
+template <typename T>
+typename std::remove_reference<T>::type&& move(T&& arg) {
+    return static_cast<typename std::remove_reference<T>::type&&>(arg);
+}
+
+/* 转发左值 */
+template<typename T>
+inline T&& forward(typename std::remove_reference<T>::type& arg){
+    return static_cast<T&&> (arg);
+}
+
+/* 转发右值 */
+template <typename T>
+inline T&& forward(typename std::remove_reference<T>::type&& arg) {
+    return static_cast<T&&>(arg);
+}
+
+/* next iterator */
+template <typename ITER_TYPE>
+inline ITER_TYPE next(const ITER_TYPE& iter){
+    return iter + 1;
+}
+
+/* previous iterator */
+template <typename ITER_TYPE>
+inline ITER_TYPE prev(const ITER_TYPE& iter){
+    return iter - 1;
+}
+
+/* swap iter data */
+template<typename ITER_TYPE>
+inline void iter_swap(ITER_TYPE& lhs, ITER_TYPE& rhs){
+    auto value = mstl::move(*lhs);
+    *lhs = mstl::move(*rhs);
+    *rhs = mstl::move(value);
+}
 
 END_NAMESPACE
