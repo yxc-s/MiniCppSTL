@@ -2,7 +2,7 @@
 
 #include <initializer_list> /* 因为{}与编译器绑定，所以不再自己实现初始化列表 */
 #include <cstddef>          /* std::size_t */
-//#include "mstl_iterator_base.h"
+
 
 #define NAMESPACE_MSTL namespace mstl{
 #define END_NAMESPACE   }
@@ -85,24 +85,41 @@ inline T&& forward(typename std::remove_reference<T>::type&& arg) {
     return static_cast<T&&>(arg);
 }
 
-/* next iterator */
+/* next iterator，需要更安全的调用，增加迭代器类型判断 */
 template <typename ITER_TYPE>
 inline ITER_TYPE next(const ITER_TYPE& iter){
     return iter + 1;
 }
 
-/* previous iterator */
+/* previous iterator，需要更安全的调用，增加迭代器类型判断 (forward_list应该用不了这个) */
 template <typename ITER_TYPE>
 inline ITER_TYPE prev(const ITER_TYPE& iter){
     return iter - 1;
 }
 
+/* swap value */
+template <typename T>
+inline void swap(T& lhs, T& rhs){
+    T temp = mstl::move(lhs);
+    lhs = mstl::move(rhs);
+    rhs = mstl::move(temp);
+}
+
 /* swap iter data */
 template<typename ITER_TYPE>
 inline void iter_swap(ITER_TYPE& lhs, ITER_TYPE& rhs){
-    auto value = mstl::move(*lhs);
-    *lhs = mstl::move(*rhs);
-    *rhs = mstl::move(value);
+    swap(*lhs, *rhs);
+}
+
+/* log2 */
+template<typename T>
+inline mstl::size_t log2(T x){
+    static_assert(std::is_integral<T>::value, "T must be an integral type");
+    mstl::size_t res = 0;
+    while (x >>= 1){
+        res ++;
+    }
+    return res;
 }
 
 END_NAMESPACE

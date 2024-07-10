@@ -99,15 +99,17 @@ int main(){
 }
 #endif
     {
-        vector<int> a{5,4,3,2,1};
-        auto it = a.begin();
-        auto rt = mstl::next(it);
-        cout << (a.end() - it) << endl;
+        mstl::vector<int> a((int)1e5);
+        int t = 1;
+        for (auto it = a.rbegin(); it != a.rend(); ++it){
+            *it = t++;
+        }
         mstl::sort(a.begin(), a.end());
-        for (auto x : a){cout << x << ' ';}
-        cout << endl;
-        //std::iter_swap();
+        for (int i = 0; i < a.size(); ++i){
+            cout << a[i] << ' ';
+        }
     }
+
     
 
     return 0;
