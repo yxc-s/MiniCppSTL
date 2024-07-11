@@ -31,24 +31,4 @@ public:
 };
 
 
-// /* next iterator */
-// template <typename ITER_TYPE>
-// inline ITER_TYPE next(const ITER_TYPE& iter){
-//     return iter + 1;
-// }
-
-// /* previous iterator */
-// template <typename ITER_TYPE>
-// inline ITER_TYPE prev(const ITER_TYPE& iter){
-//     return iter - 1;
-// }
-
-// /* swap iter data */
-// template<typename ITER_TYPE>
-// inline void iter_swap(ITER_TYPE& lhs, ITER_TYPE& rhs){
-//     auto value = *lhs;
-//     *lhs = *rhs;
-//     *rhs = value;
-// }
-
 END_NAMESPACE
