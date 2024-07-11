@@ -105,11 +105,11 @@ namespace algorithm_base{
             if (left >= right) {
                 break;
             }
-            std::swap(*left, *right);
+            mstl::swap(*left, *right);
             ++left;
             --right;
         }
-        std::swap(*left, *(end - 1)); // 将枢纽放回正确的位置
+        mstl::swap(*left, *(end - 1)); // 将枢纽放回正确的位置
         return left;
     }
 
@@ -203,9 +203,13 @@ inline void fill(ITER_TYPE begin, const ITER_TYPE& end, const typename ITER_TYPE
 }
 
 
-// /* iota! */
-// template<typename ITER_TYPE>
-// inline void iota(ITER_TYPE begin, const ITER_TYPE& end,)
+ /* iota! */
+template<typename ITER_TYPE>
+inline void iota(ITER_TYPE begin, const ITER_TYPE& end, typename ITER_TYPE::value_type value){
+    while (begin != end){
+        *begin ++ = value ++;
+    }
+}
 
 /* binary search, for vector, array, deque! */
 template <typename ITER_TYPE>
