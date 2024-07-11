@@ -29,6 +29,21 @@ public:
     deque(const InputIterator& begin, const InputIterator& end);
     ~deque();
 
+    void push_front(const T& value);
+    void push_front(T&& value);
+    void push_back(const T& value);
+    void push_back(T&& value);
+
+    void pop_back();
+
+    void clear();
+
+    void reserve();
+
+    /* iterator*/
+
+    
+
 private:
 
 
