@@ -20,6 +20,7 @@ public:
     using value_type       =  T;
     using pointer          =  T*;
     using reference        =  T&;
+    using const_pointer    =  const T*;
     using const_reference  =  const T&;
     using size_type        =  mstl::size_t;
     
@@ -169,10 +170,11 @@ public:
         pointer ptr_;
     };
 
-    using iterator = iterator_impl<T>;
-    using const_iterator = iterator_impl<const T, const T*, const T&>;
-    using reverse_iterator = iterator_impl<T, T*, T&, true>;
-    using const_reverse_iterator = iterator_impl<const T, const T*, const T&, true>;
+    using iterator = iterator_impl<value_type>;
+    using const_iterator = iterator_impl<const value_type, const_pointer, const_reference>;
+    using reverse_iterator = iterator_impl<value_type, pointer, reference, true>;
+    using const_reverse_iterator = iterator_impl<const value_type, const_pointer, const_reference, true>;
+
 
     iterator begin() { return iterator(data_ptr_); }
     iterator end()   { return iterator(data_ptr_ + ARRAY_SIZE); }

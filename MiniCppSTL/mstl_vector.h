@@ -26,6 +26,7 @@ public:
     using value_type       =  T;
     using pointer          =  T*;
     using reference        =  T&;
+    using const_pointer    =  const T*;
     using const_reference  =  const T&;
     using size_type        =  mstl::size_t;
 
@@ -33,24 +34,22 @@ public:
     vector(size_type size, const value_type& value);
     vector(const vector<value_type>& other);
     vector(vector<value_type>&& other) noexcept;
-    vector(const std::initializer_list<T>& initializer) noexcept;
-
+    vector(const std::initializer_list<value_type>& initializer) noexcept;
     /* 迭代器构造 */
     template<typename InputIterator, typename = typename std::enable_if<
-        std::is_same_v<typename InputIterator::value_type, T>>::type>
+        std::is_same_v<typename InputIterator::value_type, value_type>>::type>
     vector(const InputIterator& begin, const InputIterator& end);
-
     ~vector();
 
 
-    void push_back(const T& value);
-    void push_back(T&& value);
+    void push_back(const value_type& value);
+    void push_back(value_type&& value);
 
     void pop_back();
     
     void reserve(size_type n);
 
-    void fill(const T& value);
+    void fill(const value_type& value);
 
     void clear() noexcept;
 
@@ -176,10 +175,10 @@ public:
         pointer ptr_;
     };
 
-    using iterator = iterator_impl<T>;
-    using const_iterator = iterator_impl<const T, const T*, const T&>;
-    using reverse_iterator = iterator_impl<T, T*, T&, true>;
-    using const_reverse_iterator = iterator_impl<const T, const T*, const T&, true>;
+    using iterator = iterator_impl<value_type>;
+    using const_iterator = iterator_impl<const value_type, const_pointer, const_reference>;
+    using reverse_iterator = iterator_impl<value_type, pointer, reference, true>;
+    using const_reverse_iterator = iterator_impl<const value_type, const_pointer, const_reference, true>;
 
     iterator begin() { return iterator(data_ptr_); }
     iterator end()   { return iterator(data_ptr_ + cur_size_); }
@@ -193,7 +192,7 @@ public:
 
 private:
     mstl::unique_ptr<Allocator>        allocator_;
-    pointer                       data_ptr_;
+    pointer                            data_ptr_;
     size_type                          cur_size_;
     size_type                          max_size_;
     

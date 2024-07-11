@@ -13,7 +13,7 @@ using namespace std;
 int main(){
 
     //vector
-#if 0
+#if 1
 {
     mstl::vector<int> my_vec_a(10, -1);
     mstl::vector<int> my_vec_b(10, -1);
@@ -58,12 +58,20 @@ int main(){
         auto rt = mstl::next(it);
         cout << *rt << endl;
     }
+    {   
+        mstl::vector<int> a(20);
+        mstl::iota(a.begin(), a.end(), 22);
+        for (auto x : a){
+            cout << x << ' ';
+        }
+    }
+    
 }
 #endif
 
 
 //array
-#if 1
+#if 0
 {
     mstl::array<int, 23> t {1,2,3};
    // t[0] = 5;
@@ -98,6 +106,7 @@ int main(){
     cout << ( a_p <= ba_p);
 }
 #endif
+#if 0
     {
         mstl::vector<int> a((int)1e5);
         int t = 1;
@@ -109,7 +118,7 @@ int main(){
             cout << a[i] << ' ';
         }
     }
-
+#endif
     
 
     return 0;
