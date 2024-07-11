@@ -15,12 +15,24 @@ public:
 
     pair(const T& x, const U& y) : first(x), second(y) {}
 
+    pair(T&& x, U&& y) : first(mstl::move(x)), second(mstl::move(y)) {}
+
     pair(const mstl::pair<T, U>& other) : first(other.first), second(other.second) {}
+
+    pair(mstl::pair<T, U>&& other) : first(mstl::move(other.first)), second(mstl::move(other.second)) {}
 
     pair& operator=(const mstl::pair<T, U>& other) {
         if (this != &other) {
             first = other.first;
             second = other.second;
+        }
+        return *this;
+    }
+
+    pair& operator =(mstl::pair<T, U>&& other) {
+        if (this != &other){
+            first = mstl::move(other.first);
+            second = mstl::move(other.second);
         }
         return *this;
     }
@@ -77,8 +89,8 @@ inline bool operator >=(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs
 
 /* make pair! */
 template<typename T, typename U>
-inline mstl::pair<T, U> make_pair(const T& f, const U& s){
-    return mstl::pair<T, U>{f, s};
+inline mstl::pair<T, U> make_pair(T&& f, U&& s){
+    return mstl::pair<T, U>{mstl::forward<T>(f), mstl::forward<U>(s)};
 }
 
 
