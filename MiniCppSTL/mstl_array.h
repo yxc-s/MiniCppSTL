@@ -69,13 +69,15 @@ public:
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
     public:
-        using value_type       =   ValueType;
-        using pointer          =   PointerType;
-        using reference        =   ReferenceType;
-        using difference_type  =   std::ptrdiff_t;
+        using value_type         =   ValueType;
+        using pointer            =   PointerType;
+        using reference          =   ReferenceType;
+        using difference_type    =   std::ptrdiff_t;
+        using iterator_category  =   mstl::random_access_iterator_tag;
+
         
         using this_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
-
+        
         iterator_impl(pointer ptr) : ptr_(ptr) {}
 
         /* 派生类函数， type根据模板参数来指定 */

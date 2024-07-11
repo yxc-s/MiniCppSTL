@@ -50,6 +50,28 @@ NAMESPACE_MSTL
     using size_t = typename std::size_t;
 #endif
 
+/******************************迭代器类型定义******************************/
+
+/* 迭代器类型定义 Iterator type definition */
+struct input_iterator_tag {};
+struct output_iterator_tag {};
+struct forward_iterator_tag : public input_iterator_tag {};
+struct bidirectional_iterator_tag : public forward_iterator_tag {};
+struct random_access_iterator_tag : public bidirectional_iterator_tag {};
+
+/* next iterator，限定单双向迭代器+随机访问迭代器才能用 */
+template <typename ITER_TYPE, typename = std::enable_if_t<std::is_base_of_v<mstl::forward_iterator_tag, typename ITER_TYPE::iterator_category>>>
+inline ITER_TYPE next(ITER_TYPE iter){
+    return (++iter);
+}
+
+/* previous iterator， 限定双向迭代器+随机访问迭代器才能用 */
+template <typename ITER_TYPE, typename = std::enable_if_t<std::is_base_of_v<mstl::bidirectional_iterator_tag,  typename ITER_TYPE::iterator_category>>>
+inline ITER_TYPE prev(ITER_TYPE iter){
+    return (--iter);
+}
+
+/******************************迭代器类型定义结束******************************/
 
 /* 小的元素在左边 */
 template<typename T>
@@ -85,17 +107,6 @@ inline T&& forward(typename std::remove_reference<T>::type&& arg) {
     return static_cast<T&&>(arg);
 }
 
-/* next iterator，需要更安全的调用，增加迭代器类型判断 */
-template <typename ITER_TYPE>
-inline ITER_TYPE next(const ITER_TYPE& iter){
-    return iter + 1;
-}
-
-/* previous iterator，需要更安全的调用，增加迭代器类型判断 (forward_list应该用不了这个) */
-template <typename ITER_TYPE>
-inline ITER_TYPE prev(const ITER_TYPE& iter){
-    return iter - 1;
-}
 
 /* swap value */
 template <typename T>

@@ -4,6 +4,7 @@
 
 NAMESPACE_MSTL
 
+/* TODO： 可以考虑加入一个共享给内存池（资源利用里高，内存碎片化降低，但是锁可能造成性能消耗），或者独享内存池（降低频繁new delete)*/
 template <class T>
 class Allocator {
 public:
@@ -23,6 +24,7 @@ public:
     pointer allocate(size_type size, const void* hint = 0);
     void deallocate(pointer p, size_type size);
 
+    /* TODO: why do i need this */
     template <class U>
     struct rebind {
         using other = Allocator<U>;

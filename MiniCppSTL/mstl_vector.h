@@ -49,6 +49,7 @@ public:
     
     void reserve(size_type n);
 
+    /* TODO: 弃用这个函数? */
     void fill(const value_type& value);
 
     void clear() noexcept;
@@ -76,12 +77,15 @@ public:
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
     public:
-        using value_type       =   ValueType;
-        using pointer          =   PointerType;
-        using reference        =   ReferenceType;
-        using difference_type  =   std::ptrdiff_t;
+        using value_type         =   ValueType;
+        using pointer            =   PointerType;
+        using reference          =   ReferenceType;
+        using difference_type    =   std::ptrdiff_t;
+        using iterator_category  =   mstl::random_access_iterator_tag;
+
 
         using this_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
+        
         iterator_impl(pointer ptr) : ptr_(ptr) {}
 
         /* 派生类函数， type根据模板参数来指定 */
@@ -117,6 +121,7 @@ public:
             }
             return *this; 
         }
+
         iterator_impl operator--(int) override { 
             iterator_impl new_iter = *this;
             if constexpr (IS_REVERSE) {
@@ -203,6 +208,7 @@ private:
     }
 };
 
+/* Placement new 表达式: new (address) Type(arguments) */
 
 template<typename T, typename Allocator>
 inline vector<T, Allocator>::vector(size_type size): 
