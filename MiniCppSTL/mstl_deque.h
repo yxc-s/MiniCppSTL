@@ -2,6 +2,9 @@
 
 #include "mstl_global.h"
 #include "mstl_allocator.h"
+#include "mstl_memory.h" //unique_ptr
+#include "mstl_iterator_base.h" 
+#include "mstl_algorithm.h" //max
 
 #include <type_traits>
 
@@ -9,6 +12,7 @@ NAMESPACE_MSTL
 
 template<typename T, typename Allocator = mstl::Allocator<T>>
 class deque{
+    static constexpr const size_t BLOCK_SIZE = 512;
 public:
     /* STL format */
     using value_type       =  T;
@@ -31,24 +35,82 @@ public:
 
     void push_front(const T& value);
     void push_front(T&& value);
+
     void push_back(const T& value);
     void push_back(T&& value);
 
     void pop_back();
+    void pop_front();
+
+    void reserve(size_type size);
 
     void clear();
 
-    void reserve();
+    deque<value_type, Allocator>& operator =(const deque<value_type>& other);
+    deque<value_type, Allocator>& operator =(deque<value_type>&& other) noexcept;
 
+    template<typename U>
+    friend bool operator ==(const mstl::deque<U>& lhs, const mstl::deque<U>& rhs);
+
+    reference operator[] (size_type p);
+    const_reference operator [] (size_type p) const;
+
+    reference front();
+    const_reference front()                   const;
+
+    reference back()                                ;
+    const_reference back()                    const ;
+
+    size_type size()                            const noexcept;
+    size_type capacity()                        const noexcept;
+    bool empty()                                const noexcept;
+    
     /* iterator*/
 
     
 
 private:
-
-
-
+    size_type num_blocks_;
+    size_type front_index_;
+    size_type back_index_;
+    size_type num_element_;
+    Allocator allocator_;
+    mstl::unique_ptr<pointer[]> block_ptr_;
+    
 };
+
+template<typename T, typename Allocator>
+deque<T, Allocator>::deque(size_type size) : 
+    front_index_(BLOCK_SIZE - 1),
+    back_index_(0),
+    num_blocks_(mstl::max((size + BLOCK_SIZE - 1) / BLOCK_SIZE, 2)),
+    num_element_(size),
+    block_ptr_(allocator_.allocate(num_blocks_ * sizeof(pointer)))
+{
+    for (size_t i == 0; i < num_blocks_; ++i){
+        block_ptr_[i] = allocator_.allocate(BLOCK_SIZE);
+        for (size_t j = 0; j < BLOCK_SIZE; ++j){
+            new (block_ptr_[i] + j) T();
+        }
+    }
+}
+
+
+template<typename T, typename Allocator>
+deque<T, Allocator>::deque(size_type size, const T& value) : 
+    front_index_(BLOCK_SIZE - 1),
+    back_index_(0),
+    num_blocks_(mstl::max((size + BLOCK_SIZE - 1) / BLOCK_SIZE, 2)),
+    num_element_(size),
+    block_ptr_(allocator_.allocate(num_blocks_ * sizeof(pointer)))
+{
+    for (size_t i == 0; i < num_blocks_; ++i){
+        block_ptr_[i] = allocator_.allocate(BLOCK_SIZE);
+        for (size_t j = 0; j < BLOCK_SIZE; ++j){
+            new (block_ptr_[i] + j) T(value);
+        }
+    }
+}
 
 
 END_NAMESPACE

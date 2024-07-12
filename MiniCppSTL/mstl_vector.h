@@ -196,7 +196,7 @@ public:
     const_reverse_iterator crend() { return const_reverse_iterator(data_ptr_ - 1); }
 
 private:
-    mstl::unique_ptr<Allocator>        allocator_;
+    Allocator                          allocator_;
     pointer                            data_ptr_;
     size_type                          cur_size_;
     size_type                          max_size_;
@@ -212,8 +212,7 @@ private:
 
 template<typename T, typename Allocator>
 inline vector<T, Allocator>::vector(size_type size): 
-    allocator_(new Allocator{}),
-    data_ptr_(allocator_->allocate(size)),
+    data_ptr_(allocator_.allocate(size)),
     cur_size_(size),
     max_size_(size)
 {
@@ -226,8 +225,7 @@ inline vector<T, Allocator>::vector(size_type size):
 
 template<typename T, typename Allocator>
 inline vector<T, Allocator>::vector(size_type size, const value_type& value): 
-    allocator_(new Allocator{}),
-    data_ptr_(allocator_->allocate(size)),
+    data_ptr_(allocator_.allocate(size)),
     cur_size_(size),
     max_size_(size)
 {
@@ -240,10 +238,9 @@ inline vector<T, Allocator>::vector(size_type size, const value_type& value):
 
 template<typename T, typename Allocator>
 inline vector<T, Allocator>::vector(const vector<T>& other):
-    allocator_(new Allocator),
     cur_size_(other.cur_size_),
     max_size_(other.max_size_),
-    data_ptr_(allocator_->allocate(max_size_))
+    data_ptr_(allocator_.allocate(max_size_))
 {   
     if constexpr (std::is_trivially_copyable<T>::value) {
         memcpy(data_ptr_, other.data_ptr_, sizeof(T) * cur_size_);
@@ -257,7 +254,6 @@ inline vector<T, Allocator>::vector(const vector<T>& other):
 
 template<typename T, typename Allocator>
 inline vector<T, Allocator>::vector(vector<T>&& other) noexcept:
-    allocator_(new Allocator),
     data_ptr_(other.data_ptr_),
     max_size_(other.max_size_),
     cur_size_(other.cur_size_)
@@ -269,8 +265,7 @@ inline vector<T, Allocator>::vector(vector<T>&& other) noexcept:
 
 template<typename T, typename Allocator>
 inline vector<T, Allocator>::vector(const std::initializer_list<T>& initializer) noexcept:
-    allocator_(new Allocator),
-    data_ptr_(allocator_->allocate(static_cast<size_type>(initializer.size()))),
+    data_ptr_(allocator_.allocate(static_cast<size_type>(initializer.size()))),
     max_size_(static_cast<size_type>(initializer.size())),
     cur_size_(static_cast<size_type>(initializer.size()))
 {
@@ -284,8 +279,7 @@ inline vector<T, Allocator>::vector(const std::initializer_list<T>& initializer)
 template<typename T, typename Allocator>
 template<typename InputIterator, typename >
 inline vector<T, Allocator>::vector(const InputIterator& begin, const InputIterator& end): 
-    allocator_(new Allocator{}),
-    data_ptr_(allocator_->allocate(end - begin + 1)),
+    data_ptr_(allocator_.allocate(end - begin + 1)),
     cur_size_(end - begin + 1),
     max_size_(end - begin + 1)
 {
@@ -298,7 +292,7 @@ template<typename T, typename Allocator>
 inline vector<T, Allocator>::~vector(){
     if (data_ptr_){
         releaseMemory();
-        allocator_->deallocate(data_ptr_, max_size_);
+        allocator_.deallocate(data_ptr_, max_size_);
     }
     data_ptr_ = nullptr;
 }
@@ -306,7 +300,7 @@ inline vector<T, Allocator>::~vector(){
 template<typename T, typename Allocator>
 inline void vector<T, Allocator>::reserve(size_type size){
     if (size > max_size_){
-        pointer new_pointer = allocator_->allocate(size);
+        pointer new_pointer = allocator_.allocate(size);
         if constexpr (std::is_trivially_copyable<T>::value) {
             memcpy(new_pointer, data_ptr_, sizeof(T) * cur_size_);
         }
@@ -318,7 +312,7 @@ inline void vector<T, Allocator>::reserve(size_type size){
             }
         }
         releaseMemory();
-        allocator_->deallocate(data_ptr_, max_size_);
+        allocator_.deallocate(data_ptr_, max_size_);
         max_size_ = size;
         data_ptr_ = new_pointer;
     }
@@ -347,9 +341,9 @@ inline vector<T, Allocator>& vector<T, Allocator>::operator =(const vector<T>& o
         }
         if (max_size_ < other.cur_size_){
             if (data_ptr_){
-                allocator_->deallocate(data_ptr_, max_size_);   
+                allocator_.deallocate(data_ptr_, max_size_);   
             }
-            data_ptr_ = allocator_->allocate(other.max_size_);
+            data_ptr_ = allocator_.allocate(other.max_size_);
             max_size_ = other.max_size_;
         }
         if constexpr (std::is_trivially_copyable<value_type>::value) {
@@ -371,7 +365,7 @@ inline vector<T, Allocator>& vector<T, Allocator>::operator =(vector<T>&& other)
     if (this != &other){
         if (data_ptr_){
             releaseMemory();
-            allocator_->deallocate(data_ptr_, max_size_);
+            allocator_.deallocate(data_ptr_, max_size_);
         }
         data_ptr_ = other.data_ptr_;
         cur_size_ = other.cur_size_;
