@@ -12,26 +12,17 @@ If this repository is helpful for your studies or work, please consider giving i
 TODO: 
 
 DataStructure:
-  deque,
   map,
   unordered_map,
   set,
   unordered_set,
-  list,
-  forward_list,
-
 
   stack,
   queue,
   priority_queue,
-
-  prefix_tree,
-  segment_tree,
-  disjoint_set,
   
 
 iterator
-  增加iterator类型判定（random, 双向， 单向等）
   distance代替 + - 操作，更安全
   
 

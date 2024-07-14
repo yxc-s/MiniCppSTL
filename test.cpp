@@ -18,7 +18,6 @@ int main(){
 {
     mstl::vector<int> my_vec_a(10, -1);
     mstl::vector<int> my_vec_b(10, -1);
-    my_vec_b.fill(-2);
     std::cout << (my_vec_a == my_vec_b) << std::endl;
     my_vec_b.push_back(2);
     for (int i = 0; i < my_vec_b.size(); ++i){
@@ -66,13 +65,23 @@ int main(){
             cout << x << ' ';
         }
     }
+    {
+        mstl::vector<mstl::pair<int, char>> a;
+        a.emplace_back(2, 'c');
+        a.emplace_back(4, '@');
+        cout << endl;
+        for (int i = 0; i < a.size(); ++i){
+            cout << a[i].first << " " << a[i].second << " \n"[i == a.size() - 1];
+        }
+        
+    }
     
 }
 #endif
 
 
 //array
-#if 0
+#if 1
 {
     mstl::array<int, 23> t {1,2,3};
    // t[0] = 5;
@@ -121,5 +130,40 @@ int main(){
     }
 #endif
 
+//deque
+#if 1
+    {
+        mstl::deque<int> a{1,2,3,4,5};
+        //cout << a.size() << endl;
+        cout << a.capacity() << endl;
+        for (auto it = a.rbegin(); it != a.rend(); ++it){
+            cout << (*it) << '\n';
+        }
+
+        mstl::deque<int> b{2,3,34,12,31,23,12,31,23,12,312,3,1};
+        a = mstl::move(b);
+        int t = -2;
+        for (auto& x : a){
+            x = t --;
+        }
+        for (auto it = a.cbegin(); it != a.cend(); ++it){
+            cout << (*it) << endl;
+        }
+        mstl::deque<int> c(a.begin(), a.end());
+        cout << c.size() << endl;
+        for (int i = 0; i < c.size(); ++i){
+            cout << c[i] << " \n"[i == c.size() - 1];
+        }
+        mstl::deque<mstl::pair<int, int>> d;
+        d.emplace_back(2,3);
+        d.emplace_front(0, 0);
+        d.emplace_back(4,4);
+        d.emplace_back({22,4});
+        for (auto&[x, y] : d){
+            cout << x << " " << y << endl;
+        }
+        a == b;
+    }
+#endif
     return 0;
 }
