@@ -2,15 +2,13 @@
 
 #include "mstl_global.h"
 #include "mstl_allocator.h"
-#include "mstl_memory.h" //unique_ptr
 #include "mstl_iterator_base.h" 
 
 #include <type_traits>
 
 /* 
-TODO: iterator 和一些小的函数
-    emplace
-    rebind的alloccator是否可靠，待验证
+TODO:
+    erase考虑要不要加？对于随机访问容器，如果erase中间元素是个大开销，需要考虑一下
 */
 NAMESPACE_MSTL
 
@@ -25,103 +23,255 @@ public:
     using const_pointer    =  const T*;
     using const_reference  =  const T&;
     using size_type        =  mstl::size_t;
-
+    
     using block_allocator_type = typename Allocator::template rebind<pointer>::other;
 
+    /* 各种构造和析构函数 */
     explicit deque(size_type size = 0);
     deque(size_type size, const value_type& value);
     deque(const deque<value_type>& other);
     deque(deque<value_type>&& other);
     deque(const std::initializer_list<value_type>& initializer) noexcept;
-    /* 迭代器构造 */
     template<typename InputIterator, typename = typename std::enable_if<
         std::is_same_v<typename InputIterator::value_type, value_type>>::type>
     deque(const InputIterator& begin, const InputIterator& end);
     ~deque();
 
+    /* 一些常用函数 */
     void push_front(const T& value);
     void push_front(T&& value);
-
+    template<typename... Args> void emplace_front(Args&&... args);
     void push_back(const T& value);
     void push_back(T&& value);
-
     void pop_back();
     void pop_front();
-
+    template<typename... Args> void emplace_back(Args&&... args);
     void reserve(size_type size);
-
-    void clear();
-
     deque<value_type, Allocator>& operator =(const deque<value_type>& other);
     deque<value_type, Allocator>& operator =(deque<value_type>&& other) noexcept;
-
     template<typename U>
     friend bool operator ==(const mstl::deque<U>& lhs, const mstl::deque<U>& rhs);
+    template<typename U>
+    friend bool operator !=(const mstl::deque<U>& lhs, const mstl::deque<U>& rhs);
 
-    reference operator[] (size_type p);
-    const_reference operator [] (size_type p) const;
+    /* 一些类内直接定义的函数 */
+    void emplace_front(T&& value)                     { push_front(mstl::forward<T>(value)); }
+    void emplace_back(T&& value)                      { push_back(mstl::forward<T>(value)); }
+    reference operator[] (size_type p)                { return *(get_position_pointer(front_index_ + p)); } 
+    const_reference operator [] (size_type p)   const { return *(get_position_pointer(front_index_ + p)); }
+    reference front()                                 { return *(get_position_pointer(front_index_)); }
+    const_reference front()                     const { return *(get_position_pointer(front_index_)); }
+    reference back()                                  { return *(get_position_pointer(back_index_ - 1)); }
+    const_reference back()                      const { return *(get_position_pointer(back_index_ - 1)); }
+    size_type size()                            const noexcept { return back_index_ - front_index_; }
+    size_type capacity()                        const noexcept { return BLOCK_SIZE * num_blocks_; }
+    bool empty()                                const noexcept { return static_cast<bool> (back_index_ - front_index_);}
+    void clear()                                      noexcept { call_all_destructors(); }
 
-    reference front();
-    const_reference front()                   const;
+    /* Iterator */
+    /* 这里的设计引用了一个相关deque父类，在返回内存数据时，要先通过父类计算出下标对应的指针 */
+    template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
+    class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
+    public:
+        using value_type         =   ValueType;
+        using pointer            =   PointerType;
+        using reference          =   ReferenceType;
+        using difference_type    =   std::ptrdiff_t;
+        using iterator_category  =   mstl::random_access_iterator_tag;
 
-    reference back()                                ;
-    const_reference back()                    const ;
 
-    size_type size()                            const noexcept;
-    size_type capacity()                        const noexcept;
-    bool empty()                                const noexcept;
+        using this_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
+        
+        iterator_impl(size_t index, const mstl::deque<T>& deque) : index_(index), deque_(deque) {}
+
+        /* 派生类函数， type根据模板参数来指定 */
+        reference operator*() const { return *deque_.get_position_pointer(index_); }
+        pointer operator->()  { return *deque_.get_position_pointer(index_); }
+
+        iterator_impl& operator++() override { 
+            if constexpr (IS_REVERSE){
+                -- index_;
+            }
+            else{
+                ++ index_; 
+            }
+            return *this; 
+        }
+
+        iterator_impl operator++(int) override { 
+            iterator_impl new_iter = *this; 
+            if constexpr (IS_REVERSE){
+                --(*this);
+            }
+            else{
+                ++(*this); 
+            }
+            return new_iter; 
+        }
+
+        iterator_impl& operator--() override { 
+            if constexpr (IS_REVERSE){
+                ++ index_;
+            }
+            else{
+                -- index_; 
+            }
+            return *this; 
+        }
+
+        iterator_impl operator--(int) override { 
+            iterator_impl new_iter = *this;
+            if constexpr (IS_REVERSE) {
+                ++(*this);
+            } else {
+                --(*this);
+            }
+            return new_iter; 
+        }
+
+        iterator_impl operator+(difference_type offset) const override { 
+            if constexpr (IS_REVERSE) {
+                return iterator_impl(index_ - offset, deque_);
+            } else {
+                return iterator_impl(index_ + offset, deque_);
+            }
+        }
+
+        iterator_impl operator-(difference_type offset) const override { 
+            if constexpr (IS_REVERSE) {
+                return iterator_impl(index_ + offset, deque_);
+            } else {
+                return iterator_impl(index_ - offset, deque_);
+            }
+        }
+
+        difference_type operator-(const this_type& other) const override { 
+            return index_ - other.index_; 
+        }
+
+        bool operator==(const this_type& other) const override { 
+            return index_ == other.index_; 
+        }
+
+        bool operator!=(const this_type& other) const override { 
+            return !(*this == other); 
+        }
+
+        bool operator <(const this_type& other) const{
+            return index_ < other.index_;
+        }
+        
+        bool operator <=(const this_type& other) const{
+            return index_ <= other.index_;
+        }
+
+        bool operator >(const this_type& other) const{
+            return !(*this <= other);
+        }
+
+        bool operator >=(const this_type& other) const{
+            return !(*this < other);
+        }
+
+    private:
+        size_t index_;
+        const mstl::deque<T>& deque_;
+    };
     
-    /* iterator*/
+    /* 四种迭代器类型 */
+    using iterator = iterator_impl<value_type>;
+    using const_iterator = iterator_impl<const value_type, const_pointer, const_reference>;
+    using reverse_iterator = iterator_impl<value_type, pointer, reference, true>;
+    using const_reverse_iterator = iterator_impl<const value_type, const_pointer, const_reference, true>;
 
+    /* 将各种迭代器的类型声明为友元类，方便后续迭代器通过对应的下标直接计算指针地址 */
+    friend class iterator_impl<value_type>;
+    friend class iterator_impl<const value_type, const_pointer, const_reference>;
+    friend class iterator_impl<value_type, pointer, reference, true>;
+    friend class iterator_impl<const value_type, const_pointer, const_reference, true>;
+
+    /* 正向迭代器相关函数 */
+    iterator begin() { return iterator(front_index_, *this); }
+    iterator end()   { return iterator(back_index_, *this); }
+    const_iterator cbegin() { return const_iterator(front_index_, *this); } 
+    const_iterator cend() { return const_iterator(back_index_, *this); }
+
+    /* 逆向迭代器相关函数 */
+    reverse_iterator rbegin() { return reverse_iterator(back_index_ - 1, *this); }
+    reverse_iterator rend() { return reverse_iterator(front_index_ - 1, *this); }
+    const_reverse_iterator crbegin() { return const_reverse_iterator(back_index_ - 1, *this); }
+    const_reverse_iterator crend() { return const_reverse_iterator(front_index_ - 1, *this); }
     
 
 private:
-    size_type cur_blocks_;
-    size_type front_index_;
-    size_type back_index_;
-    size_type cur_size_;
-    Allocator allocator_;
-    block_allocator_type block_allocator_;
-    mstl::unique_ptr<pointer[]> block_ptr_;
+    size_type              num_blocks_;
+    size_type              front_index_;
+    size_type              back_index_;
+    Allocator              allocator_;
+    block_allocator_type   block_allocator_;
+    pointer*               block_ptr_;
     
-    constexpr pointer get_position_pointer (size_t position) const { 
-        size_t block_id = position / BLOCK_SIZE;
-        return block_ptr_[block_id] + (position % BLOCK_SIZE);
+    /* 根据index计算对应的指针 */
+    constexpr pointer get_position_pointer (size_t index) const { 
+        size_t block_id = index / BLOCK_SIZE;
+        return block_ptr_[block_id] + (index % BLOCK_SIZE);
     }
 
-    pointer* add_front_block(){
-        pointer* res = block_allocator_.allocate(cur_blocks_ + 1);
-        for (size_t i = 1; i <= cur_blocks_; ++i){
-            res[i] = block_ptr_[i - 1];
+    /* 在deque前面增加内存块 */
+    void add_front_block(){
+        pointer* new_block_ptr_ = block_allocator_.allocate(num_blocks_ + 1);
+        for (size_t i = 1; i <= num_blocks_; ++i){
+            new_block_ptr_[i] = block_ptr_[i - 1];
         }
-        res[0] = allocator_.allocate(BLOCK_SIZE);
-        cur_blocks_ ++;
+        new_block_ptr_[0] = allocator_.allocate(BLOCK_SIZE);
+        num_blocks_ ++;
         front_index_ += BLOCK_SIZE;
         back_index_ += BLOCK_SIZE;
-        return res;
+        block_ptr_ = new_block_ptr_;
     }
 
-    pointer* add_back_block(){
-        pointer* res = block_allocator_.allocate(cur_blocks_ + 1);
-        for (size_t i = 0; i < cur_blocks_; ++i){
-            res[i] = block_ptr_[i];
+    /* 在deque后面增加内存块 */
+    void add_back_block(){
+        pointer* new_block_ptr_ = block_allocator_.allocate(num_blocks_ + 1);
+        for (size_t i = 0; i < num_blocks_; ++i){
+            new_block_ptr_[i] = block_ptr_[i];
         }
-        res[cur_blocks_] = allocator_.allocate(BLOCK_SIZE);
-        cur_blocks_ ++;
-        return res;
+        new_block_ptr_[num_blocks_] = allocator_.allocate(BLOCK_SIZE);
+        num_blocks_ ++;
+        block_ptr_ = new_block_ptr_;
+    }
+
+    /* 归还系统当前deque使用的所有内存 */
+    void release_memory(){
+        call_all_destructors();
+        for (size_t i = 0; i < num_blocks_; ++i){
+            allocator_.deallocate(block_ptr_[i], BLOCK_SIZE);
+        }
+        block_allocator_.deallocate(block_ptr_, num_blocks_);
+        front_index_ = back_index_ = BLOCK_SIZE - 1;
+        num_blocks_ = 0;
+        block_ptr_ = nullptr;
+    }
+
+    /* 对deque中所有已经构造的对象进行析构 */
+    void call_all_destructors(){
+        while (front_index_ < back_index_){
+            (*get_position_pointer(front_index_)).~T();
+            ++front_index_;
+        }
+        front_index_ = back_index_ = BLOCK_SIZE - 1;
     }
 };
 
-/* 按需构造策略 */
+/* 默认构造函数，按需构造策略 */
 template<typename T, typename Allocator>
-deque<T, Allocator>::deque(size_type size) : 
-    front_index_(size > 0 ? BLOCK_SIZE - 1 : 0),
+inline deque<T, Allocator>::deque(size_type size) : 
+    front_index_(BLOCK_SIZE - 1),
     back_index_(front_index_ + size),
-    cur_blocks_(1 + (size + BLOCK_SIZE - 1) / BLOCK_SIZE),
-    cur_size_(size),
-    block_ptr_(block_allocator_.allocate(cur_blocks_))
+    num_blocks_(1 + (size + BLOCK_SIZE - 1) / BLOCK_SIZE),
+    block_ptr_(block_allocator_.allocate(num_blocks_))
 {   
-    for (size_t i = 0; i < cur_blocks_; ++i){
+    for (size_t i = 0; i < num_blocks_; ++i){
         block_ptr_[i] = allocator_.allocate(BLOCK_SIZE);
     }
     for (size_t i = front_index_; i < back_index_; ++i){
@@ -129,16 +279,15 @@ deque<T, Allocator>::deque(size_type size) :
     }
 }
 
-
+/* 按空间大小与初值构造 */
 template<typename T, typename Allocator>
-deque<T, Allocator>::deque(size_type size, const T& value) : 
+inline deque<T, Allocator>::deque(size_type size, const value_type& value) : 
     front_index_(BLOCK_SIZE - 1),
     back_index_(front_index_ + size),
-    cur_blocks_(1 + (size + BLOCK_SIZE - 1) / BLOCK_SIZE),
-    cur_size_(size),
-    block_ptr_(block_allocator_.allocate(cur_blocks_))
+    num_blocks_(1 + (size + BLOCK_SIZE - 1) / BLOCK_SIZE),
+    block_ptr_(block_allocator_.allocate(num_blocks_))
 {
-    for (size_t i = 0; i < cur_blocks_; ++i){
+    for (size_t i = 0; i < num_blocks_; ++i){
         block_ptr_[i] = allocator_.allocate(BLOCK_SIZE);
     }
     for (size_t i = front_index_; i < back_index_; ++i){
@@ -146,15 +295,15 @@ deque<T, Allocator>::deque(size_type size, const T& value) :
     }
 }
 
+/* 拷贝构造 */
 template<typename T, typename Allocator>
-deque<T, Allocator>::deque(const deque<T>& other):
+inline deque<T, Allocator>::deque(const deque<value_type>& other):
     front_index_(other.front_index_),
     back_index_(other.back_index_),
-    cur_blocks_(other.cur_blocks_),
-    cur_size_(other.cur_size_),
-    block_ptr_(block_allocator_.allocate(cur_blocks_))
+    num_blocks_(other.num_blocks_),
+    block_ptr_(block_allocator_.allocate(num_blocks_))
 {
-    for (size_t i = 0; i < cur_blocks_; ++i){
+    for (size_t i = 0; i < num_blocks_; ++i){
         block_ptr_[i] = allocator_.allocate(BLOCK_SIZE);
     }
     for (size_t i = front_index_; i < back_index_; ++i){
@@ -162,55 +311,65 @@ deque<T, Allocator>::deque(const deque<T>& other):
     }
 }
 
+/* 移动构造 */
 template<typename T, typename Allocator>
-deque<T, Allocator>::deque(deque<T>&& other):
+inline deque<T, Allocator>::deque(deque<value_type>&& other):
     front_index_(other.front_index_),
     back_index_(other.back_index_),
-    cur_blocks_(other.cur_blocks_),
-    cur_size_(other.cur_size_),
+    num_blocks_(other.num_blocks_),
     block_ptr_(other.block_ptr_)
 {
-    other.front_index_ = 0;
-    other.back_index_ =  0;
-    other.cur_blocks_ = 0;
-    other.cur_size_ = 0;
+    other.front_index_ = other.back_index_ = BLOCK_SIZE - 1;
+    other.num_blocks_ = 0;
     other.block_ptr_ = nullptr;  
 }
 
+/* 初始化列表构造 */
 template<typename T, typename Allocator>
-deque<T, Allocator>::deque(const std::initializer_list<T>& initializer) noexcept:
+inline deque<T, Allocator>::deque(const std::initializer_list<value_type>& initializer) noexcept:
     front_index_(BLOCK_SIZE - 1),
     back_index_(front_index_ + initializer.size()),
-    cur_blocks_(1 + (initializer.size() + BLOCK_SIZE - 1) / BLOCK_SIZE),
-    cur_size_(initializer.size()),
-    block_ptr_(block_allocator_.allocate(cur_blocks_))
+    num_blocks_(1 + (initializer.size() + BLOCK_SIZE - 1) / BLOCK_SIZE),
+    block_ptr_(block_allocator_.allocate(num_blocks_))
 {   
-    for (size_t i = 0; i < cur_blocks_; ++i){
+    auto it = initializer.begin();
+    for (size_t i = 0; i < num_blocks_; ++i){
         block_ptr_[i] = allocator_.allocate(BLOCK_SIZE);
     }
-    for (size_t i = front_index_, j = 0; i < back_index_; ++i, ++j){
-        new(get_position_pointer(i)) T(initializer[j]);
+    for (size_t i = front_index_; i < back_index_; ++i){
+        new(get_position_pointer(i)) T(*it);
+        it ++;
     }
 }
 
-
-/* 是否需先实现distance函数？ 这里应该是不能直接迭代器相减获得数量了 */
-
-// template<typename T, typename Allocator>
-// template<typename InputIterator, typename >
-// deque<T, Allocator>::deque(const InputIterator& begin, const InputIterator& end):
-//     front_index_(BLOCK_SIZE - 1),
-//     back_index_(front_index_ + size),
-//     cur_blocks_(1 + (...) / BLOCK_SIZE),
-//     cur_size_(size),
-//     block_ptr_(allocator_.allocate(cur_blocks_ * sizeof(pointer)))
-// {
-
-// }
-
-
+/* 迭代器构造 */
 template<typename T, typename Allocator>
-void deque<T, Allocator>::push_front(const T& value){
+template<typename InputIterator, typename >
+deque<T, Allocator>::deque(const InputIterator& begin, const InputIterator& end):
+    front_index_(BLOCK_SIZE - 1),
+    back_index_(front_index_ + (end - begin)),
+    num_blocks_(1 + (end - begin + BLOCK_SIZE - 1) / BLOCK_SIZE),
+    block_ptr_(block_allocator_.allocate(num_blocks_ * sizeof(pointer)))
+{   
+    for (size_t i = 0; i < num_blocks_; ++i){
+        block_ptr_[i] = allocator_.allocate(BLOCK_SIZE);
+    }
+    for (size_t i = front_index_; i < back_index_; ++i){
+        new(get_position_pointer(i)) T(*(begin + i - front_index_));
+    }
+}
+
+/* 析构函数 */
+template<typename T, typename Allocator>
+inline deque<T, Allocator>::~deque(){
+    if (block_ptr_ != nullptr){
+        release_memory();
+    }
+}
+
+/* 向首部添加左值元素 */
+template<typename T, typename Allocator>
+inline void deque<T, Allocator>::push_front(const value_type& value){
     if (!front_index_){
         add_front_block();
     }
@@ -218,8 +377,9 @@ void deque<T, Allocator>::push_front(const T& value){
     new (get_position_pointer(front_index_)) T(value);
 }
 
+/* 向首部添加右值元素 */
 template<typename T, typename Allocator>
-void deque<T, Allocator>::push_front(T&& value){
+inline void deque<T, Allocator>::push_front(value_type&& value){
     if (!front_index_){
         add_front_block();
     }
@@ -227,22 +387,135 @@ void deque<T, Allocator>::push_front(T&& value){
     new (get_position_pointer(front_index_)) T(mstl::move(value));
 }
 
+/* 在首部根据参数直接构造元素 */
 template<typename T, typename Allocator>
-void deque<T, Allocator>::push_back(const T& value){
-    if (back_index_ % BLOCK_SIZE == 0 && back_index_ / BLOCK_SIZE == cur_blocks_){
+template<typename... Args>
+inline void deque<T, Allocator>::emplace_front(Args&&... args){
+    if (!front_index_){
+        add_front_block();
+    }
+    front_index_ --;
+    new(get_position_pointer(front_index_)) T(mstl::forward<Args>(args)...);
+}
+
+/* 向末尾添加左值元素，注意back_index_是最后一个元素下标的下一位  */
+template<typename T, typename Allocator>
+inline void deque<T, Allocator>::push_back(const value_type& value){
+    if (back_index_ % BLOCK_SIZE == 0 && back_index_ / BLOCK_SIZE == num_blocks_){
         add_back_block();
     }
     new(get_position_pointer(back_index_)) T(value);
     back_index_ ++;
 }
 
+/* 向末尾添加右值元素*/
 template<typename T, typename Allocator>
-void deque<T, Allocator>::push_back(T&& value){
-    if (back_index_ % BLOCK_SIZE == 0 && back_index_ / BLOCK_SIZE == cur_blocks_){
+inline void deque<T, Allocator>::push_back(value_type&& value){
+    if (back_index_ % BLOCK_SIZE == 0 && back_index_ / BLOCK_SIZE == num_blocks_){
         add_back_block();
     }
     new(get_position_pointer(back_index_)) T(mstl::move(value));
     back_index_ ++;
+}
+
+/* 在末尾根据参数直接构造元素 */
+template<typename T, typename Allocator>
+template<typename... Args>
+inline void deque<T, Allocator>::emplace_back(Args&&... args){
+    if ((back_index_ % BLOCK_SIZE == 0 && back_index_ / BLOCK_SIZE == num_blocks_)){
+        add_back_block();
+    }
+    new(get_position_pointer(back_index_)) T(mstl::forward<Args>(args)...);
+    back_index_ ++;
+}
+
+/* 删除最后一个元素 */
+template<typename T, typename Allocator>
+inline void deque<T, Allocator>::pop_back(){
+    *(get_position_pointer(back_index_ - 1)).~T();
+    back_index_ --;
+}
+
+/* 删除第一个元素 */
+template<typename T, typename Allocator>
+inline void deque<T, Allocator>::pop_front(){
+    *(get_position_pointer(front_index_)).~T();
+    front_index_ ++;
+}
+
+/* 预分配指定大小内存 */
+template<typename T, typename Allocator>
+inline void deque<T, Allocator>::reserve(size_type size){
+    if (BLOCK_SIZE * num_blocks_ < size){
+        size_t new_block_size = 1 + (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+        pointer* new_block_pointer = block_allocator_.allocate(new_block_size);
+        for (size_t i = 0; i < new_block_size; ++i){
+            if (i < num_blocks_) {
+                new_block_pointer[i] = block_ptr_[i];
+            }
+            else{
+                new_block_pointer[i] = allocator_.allocate(BLOCK_SIZE);
+            }
+        }
+        block_ptr_ = new_block_pointer;
+        num_blocks_ = new_block_size;
+    }
+}
+
+/* 拷贝构造=重载 */
+template<typename T, typename Allocator>
+inline deque<T, Allocator>& deque<T, Allocator>:: operator =(const deque<value_type>& other){
+    if (this != &other){
+        if (block_ptr_){
+            release_memory();
+        }
+        reserve(other.back_index_ - other.front_index_);
+        for (size_type i = other.front_index_; i < other.back_index_; ++i) {
+            new(get_position_pointer(i)) T(*(other.get_position_pointer(i)));
+        }
+        front_index_ = other.front_index_;
+        back_index_ = other.back_index_;
+        //cur_blocks_和block_pointer_在reserve的时候已更新.
+    }
+    return *this;
+}
+
+/* 移动构造=重载 */
+template<typename T, typename Allocator>
+inline deque<T, Allocator>& deque<T, Allocator>::operator =(deque<value_type>&& other) noexcept{
+    if (this != &other){
+        if (block_ptr_){
+            release_memory();
+        }
+        block_ptr_ = other.block_ptr_;
+        front_index_ = other.front_index_;
+        back_index_ = other.back_index_;
+        num_blocks_ = other.num_blocks_;
+        other.block_ptr_ = nullptr;
+        other.front_index_ = other.back_index_ = BLOCK_SIZE - 1;
+        other.num_blocks_ = 0;
+    }
+    return *this;
+}
+
+/* 检查两个deque是否相等 */
+template<typename T>
+inline bool operator ==(const mstl::deque<T>& lhs, const mstl::deque<T>& rhs){
+    if (lhs.size() != rhs.size()){
+        return false;
+    }
+    for (decltype(lhs.size()) i = 0; i < lhs.size(); ++i){
+        if (lhs[i] != rhs[i]){
+            return false;
+        }
+    }
+    return true;
+}
+
+/* 检查两个deque是否不相等 */
+template<typename T>
+inline bool operator !=(const mstl::deque<T>& lhs, const mstl::deque<T>& rhs){
+    return !(lhs == rhs);
 }
 
 
