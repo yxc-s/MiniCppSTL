@@ -56,7 +56,7 @@ public:
 
     /* 简单的重载 */
     template<typename U, const mstl::size_t size>
-    friend bool operator !=(const mstl::array<U, size>& lhs, const mstl::array<U, size>& rhs);
+    friend bool operator ==(const mstl::array<U, size>& lhs, const mstl::array<U, size>& rhs);
     template<typename U, const mstl::size_t size>
     friend bool operator !=(const mstl::array<U, size>& lhs, const mstl::array<U, size>& rhs);
 
