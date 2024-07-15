@@ -8,13 +8,16 @@
 
 /* 
 TODO:
+    reserve是否应该分为front和back？
     erase考虑要不要加？对于随机访问容器，如果erase中间元素是个大开销，需要考虑一下
 */
 NAMESPACE_MSTL
 
 template<typename T, typename Allocator = mstl::Allocator<T>>
 class deque{
-    static constexpr const size_t BLOCK_SIZE = 512;
+    static constexpr const size_t BLOCK_SIZE       =   512;
+    static constexpr const size_t INITIAL_INDEX    =   BLOCK_SIZE / 2; /* 256 */
+    static constexpr const size_t INITIAL_CAPACITY =   BLOCK_SIZE - INITIAL_INDEX + 1; /* 256 : 下标256 ~ 511*/
 public:
     /* STL format */
     using value_type       =  T;
@@ -248,7 +251,7 @@ private:
             allocator_.deallocate(block_ptr_[i], BLOCK_SIZE);
         }
         block_allocator_.deallocate(block_ptr_, num_blocks_);
-        front_index_ = back_index_ = BLOCK_SIZE - 1;
+        front_index_ = back_index_ = INITIAL_INDEX;
         num_blocks_ = 0;
         block_ptr_ = nullptr;
     }
@@ -259,16 +262,16 @@ private:
             (*get_position_pointer(front_index_)).~T();
             ++front_index_;
         }
-        front_index_ = back_index_ = BLOCK_SIZE - 1;
+        front_index_ = back_index_ = INITIAL_INDEX;
     }
 };
 
 /* 默认构造函数，按需构造策略 */
 template<typename T, typename Allocator>
 inline deque<T, Allocator>::deque(size_type size) : 
-    front_index_(BLOCK_SIZE - 1),
+    front_index_(INITIAL_INDEX),
     back_index_(front_index_ + size),
-    num_blocks_(1 + (size + BLOCK_SIZE - 1) / BLOCK_SIZE),
+    num_blocks_((INITIAL_CAPACITY + size + BLOCK_SIZE - 1) / BLOCK_SIZE),
     block_ptr_(block_allocator_.allocate(num_blocks_))
 {   
     for (size_t i = 0; i < num_blocks_; ++i){
@@ -282,9 +285,9 @@ inline deque<T, Allocator>::deque(size_type size) :
 /* 按空间大小与初值构造 */
 template<typename T, typename Allocator>
 inline deque<T, Allocator>::deque(size_type size, const value_type& value) : 
-    front_index_(BLOCK_SIZE - 1),
+    front_index_(INITIAL_INDEX),
     back_index_(front_index_ + size),
-    num_blocks_(1 + (size + BLOCK_SIZE - 1) / BLOCK_SIZE),
+    num_blocks_((INITIAL_CAPACITY + size + BLOCK_SIZE - 1) / BLOCK_SIZE),
     block_ptr_(block_allocator_.allocate(num_blocks_))
 {
     for (size_t i = 0; i < num_blocks_; ++i){
@@ -319,7 +322,7 @@ inline deque<T, Allocator>::deque(deque<value_type>&& other):
     num_blocks_(other.num_blocks_),
     block_ptr_(other.block_ptr_)
 {
-    other.front_index_ = other.back_index_ = BLOCK_SIZE - 1;
+    other.front_index_ = other.back_index_ = INITIAL_INDEX;
     other.num_blocks_ = 0;
     other.block_ptr_ = nullptr;  
 }
@@ -327,9 +330,9 @@ inline deque<T, Allocator>::deque(deque<value_type>&& other):
 /* 初始化列表构造 */
 template<typename T, typename Allocator>
 inline deque<T, Allocator>::deque(const std::initializer_list<value_type>& initializer) noexcept:
-    front_index_(BLOCK_SIZE - 1),
+    front_index_(INITIAL_INDEX),
     back_index_(front_index_ + initializer.size()),
-    num_blocks_(1 + (initializer.size() + BLOCK_SIZE - 1) / BLOCK_SIZE),
+    num_blocks_((INITIAL_CAPACITY + initializer.size() + BLOCK_SIZE - 1) / BLOCK_SIZE),
     block_ptr_(block_allocator_.allocate(num_blocks_))
 {   
     auto it = initializer.begin();
@@ -346,9 +349,9 @@ inline deque<T, Allocator>::deque(const std::initializer_list<value_type>& initi
 template<typename T, typename Allocator>
 template<typename InputIterator, typename >
 deque<T, Allocator>::deque(const InputIterator& begin, const InputIterator& end):
-    front_index_(BLOCK_SIZE - 1),
+    front_index_(INITIAL_INDEX),
     back_index_(front_index_ + (end - begin)),
-    num_blocks_(1 + (end - begin + BLOCK_SIZE - 1) / BLOCK_SIZE),
+    num_blocks_((INITIAL_CAPACITY + (end - begin) + BLOCK_SIZE - 1) / BLOCK_SIZE),
     block_ptr_(block_allocator_.allocate(num_blocks_ * sizeof(pointer)))
 {   
     for (size_t i = 0; i < num_blocks_; ++i){
@@ -447,7 +450,7 @@ inline void deque<T, Allocator>::pop_front(){
 template<typename T, typename Allocator>
 inline void deque<T, Allocator>::reserve(size_type size){
     if (BLOCK_SIZE * num_blocks_ < size){
-        size_t new_block_size = 1 + (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+        size_t new_block_size = (INITIAL_CAPACITY + size + BLOCK_SIZE - 1) / BLOCK_SIZE;
         pointer* new_block_pointer = block_allocator_.allocate(new_block_size);
         for (size_t i = 0; i < new_block_size; ++i){
             if (i < num_blocks_) {
@@ -492,7 +495,7 @@ inline deque<T, Allocator>& deque<T, Allocator>::operator =(deque<value_type>&& 
         back_index_ = other.back_index_;
         num_blocks_ = other.num_blocks_;
         other.block_ptr_ = nullptr;
-        other.front_index_ = other.back_index_ = BLOCK_SIZE - 1;
+        other.front_index_ = other.back_index_ = INITIAL_INDEX - 1;
         other.num_blocks_ = 0;
     }
     return *this;

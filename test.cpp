@@ -135,7 +135,7 @@ int main(){
     {
         mstl::deque<int> a{1,2,3,4,5};
         //cout << a.size() << endl;
-        cout << a.capacity() << endl;
+        cout << "capacity" << a.capacity() << endl;
         for (auto it = a.rbegin(); it != a.rend(); ++it){
             cout << (*it) << '\n';
         }
