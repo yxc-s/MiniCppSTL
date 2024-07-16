@@ -179,6 +179,9 @@ int main(){
         cout << s.size() << endl;
         s.erase(10);
         cout << s.size() << endl;
+        s.insert(-10);
+        auto it = s.begin();
+        cout << (*it) << endl;
     }
 #endif
     return 0;

@@ -7,18 +7,22 @@
 
 NAMESPACE_MSTL 
 
+//TODO:这里是不是不需要友元类？ 
+// template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP>
+// class RedBlackTree;
 
+template<typename T, typename U, const bool IS_MAP>//, typename Allocator, typename Compare>
+class RbtNode{
+  //  friend class RedBlackTree<T, U, Compare, Allocator, IS_MAP>;
+public:
+    using value_type      =  typename std::conditional_t<IS_MAP, mstl::pair<T, U>, T>;
+    using const_value_type = const value_type;
+    using pointer         =  value_type*;
+    using const_pointer   =  const value_type*;
+    using reference       =  value_type&;
+    using const_reference =  const value_type&;
 
-template<typename T>
-struct RbtNode{
-    using data_type = T;
-    RbtNode*   left_;
-    RbtNode*   right_;
-    RbtNode*   parent_;
-    data_type  data_;
-    bool       is_black_;
-
-    explicit RbtNode(const data_type& value) : 
+    explicit RbtNode(const value_type& value) : 
         left_(nullptr), 
         right_(nullptr), 
         parent_(nullptr), 
@@ -26,7 +30,7 @@ struct RbtNode{
         is_black_(false)
     {}
 
-    explicit RbtNode(data_type&& value) : 
+    explicit RbtNode(value_type&& value) : 
         left_(nullptr), 
         right_(nullptr), 
         parent_(nullptr), 
@@ -68,6 +72,15 @@ struct RbtNode{
         is_black_ = other.is_black_;
     }
 
+    reference operator *() { return data_; } 
+    const_reference operator*() const { return data_; }
+
+//private:
+    RbtNode*   left_;
+    RbtNode*   right_;
+    RbtNode*   parent_;
+    bool       is_black_;
+    value_type  data_;
 
 };
 
@@ -79,8 +92,8 @@ public:
     using key_type                 =    T;
     using value_type               =    U;
     using size_type                =    mstl::size_t;
-    using node_data_type           =    std::conditional_t<IS_MAP, mstl::pair<key_type, value_type>, key_type>;
-    using node_type                =    RbtNode<node_data_type>;
+    using node_type                =    RbtNode<T, U, IS_MAP>;
+    //using node_type                =    RbtNode<T, U, IS_MAP, Allocator, Compare>;
     using compare_function_type    =    Compare;
     using allocator_type           =    typename Allocator::template rebind<node_type>::other;
 
@@ -108,10 +121,10 @@ public:
 #endif
     
     /* 这里注意要去除一下V的引用才可以，不然只能接受右值(签名增加了enable_if可能会导致只接受右值) */
-    template<typename V, typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<V>, typename node_type::data_type>>>
+    template<typename V, typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<V>, typename node_type::value_type>>>
     void insert(V&& value);
 
-    template<typename V, typename = std::enable_if_t<std::is_same_v<V, typename node_type::data_type>>>
+    template<typename V, typename = std::enable_if_t<std::is_same_v<V, typename node_type::value_type>>>
     void erase(const V& value);
 
     size_type size() const noexcept { return current_size_; }
@@ -151,6 +164,9 @@ protected:
     void insert_new_node_impl(node_type* x);
     void insert_fix_impl(node_type* x) noexcept;
     
+    /* 删除元素逻辑的具体实现 */
+    void erase_node_impl(node_type* node);
+
     /* 查找指定数值节点 */
     template<typename V>
     node_type* find_node(const V& value){
@@ -169,8 +185,36 @@ protected:
         return nullptr;
     }
 
-    /* 删除元素逻辑的具体实现 */
-    void erase_node_impl(node_type* node);
+    /* 四个获取边界元素函数，用于获取迭代器时调用 */
+    node_type* left_most() noexcept {
+        node_type* cur = root_;
+        while (cur && !isNil(cur->left_)) {
+            cur = cur->left_;
+        }
+        return cur;
+    }
+    const node_type* left_most() const noexcept {
+        node_type* cur = root_;
+        while (cur && !isNil(cur->right_)) {
+            cur = cur->right_;
+        }
+        return cur;
+    }
+    node_type* right_most() noexcept {
+        node_type* cur = root_;
+        while (cur && !isNil(cur->right_)) {
+            cur = cur->right_;
+        }
+        return cur;
+    }
+    const node_type* right_most() const noexcept {
+        node_type* cur = root_;
+        while (cur && !isNil(cur->right_)) {
+            cur = cur->right_;
+        }
+        return cur;
+    }
+
 
 };
 
