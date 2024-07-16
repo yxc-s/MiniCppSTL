@@ -9,8 +9,10 @@ NAMESPACE_MSTL
 template <typename T>
 class unique_ptr{
 public:
-    using pointer       =  T*;
-    using reference     =  T&;
+    using pointer          =    T*;
+    using const_pointer    =   const T*;
+    using reference        =    T&;
+    using const_reference  =   const T&;
 
     explicit unique_ptr(pointer ptr = nullptr) noexcept: ptr_(ptr){}
     unique_ptr(unique_ptr<T>& other) = delete;
@@ -26,10 +28,15 @@ public:
         return *this;
     }
 
-    pointer get() const noexcept                { return ptr_;}
-    pointer operator ->() const noexcept        { return ptr_; }
-    reference operator *() const noexcept { return *ptr_;}
-    
+    pointer get()       noexcept                { return ptr_; }
+    const_pointer get() const noexcept          { return ptr_; }
+
+    pointer operator ->() noexcept              { return ptr_; }
+    const_pointer operator ->() const noexcept  { return ptr_; }
+
+    reference operator *() noexcept             { return *ptr_; }
+    const_reference operator *() const noexcept { return *ptr_; }
+
     void swap(unique_ptr<T>& other) noexcept {
         pointer old_ptr = this->ptr_;
         this->ptr_ = other.ptr_;
@@ -103,13 +110,13 @@ public:
     reference operator*()                      { return *(ptr_); }
     const_reference operator*() const          { return *(ptr_); }
 
-    pointer operator->()              noexcept { return ptr_;}
+    pointer operator->() noexcept              { return ptr_; }
     const_pointer operator->()  const noexcept { return ptr_; }
 
-    pointer get()                     noexcept { return ptr_;}
-    const_pointer get()         const noexcept { return ptr_; }
+    pointer get() noexcept                     { return ptr_; }
+    const_pointer get() const noexcept         { return ptr_; }
 
-    size_type use_count()       const noexcept { return cnt_ ? cnt_->load(std::memory_order_relaxed) : 0}
+    size_type use_count() const noexcept       { return cnt_ ? cnt_->load(std::memory_order_relaxed) : 0; }
 
     void swap(shared_ptr<T>& other) {
         mstl::swap(ptr_, other.ptr_);
