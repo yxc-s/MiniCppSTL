@@ -6,7 +6,7 @@
 #include "mstl_algorithm.h"
 #include "mstl_deque.h"
 #include <bits/stdc++.h>
-#include "mstl_rbtree.h"
+#include "mstl_set.h"
 
 
 
@@ -14,7 +14,7 @@ using namespace std;
 int main(){
 
     //vector
-#if 1
+#if 0
 {
     mstl::vector<int> my_vec_a(10, -1);
     mstl::vector<int> my_vec_b(10, -1);
@@ -81,7 +81,7 @@ int main(){
 
 
 //array
-#if 1
+#if 0
 {
     mstl::array<int, 23> t {1,2,3};
    // t[0] = 5;
@@ -131,7 +131,7 @@ int main(){
 #endif
 
 //deque
-#if 1
+#if 0
     {
         mstl::deque<int> a{1,2,3,4,5};
         //cout << a.size() << endl;
@@ -163,6 +163,22 @@ int main(){
             cout << x << " " << y << endl;
         }
         a == b;
+    }
+#endif
+
+
+//红黑树测试，好像测试不了，得先继承才行。。
+#if 1
+    {   
+        mstl::set<int> s;
+        s.insert(2);
+        s.insert(4);
+        for (int i = 10; i >= 1; --i){
+            s.insert(i);
+        }
+        cout << s.size() << endl;
+        s.erase(10);
+        cout << s.size() << endl;
     }
 #endif
     return 0;
