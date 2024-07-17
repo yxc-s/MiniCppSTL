@@ -86,7 +86,7 @@ public:
 
 
 
-template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP>
+template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
 class RedBlackTree{
 public:
     using key_type                 =    T;
@@ -219,8 +219,8 @@ protected:
 };
 
 /* 左旋：右孩子y变为当前节点x的父亲节点，x成为y的左孩子，y之前的左孩子成为x的右孩子 */
-template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>::rotate_left(node_type* x){
+template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::rotate_left(node_type* x){
     node_type* y = x->right_;
     x->right_ = y->left_;
     if (!isNil(y->left_)){
@@ -241,8 +241,8 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>::rotate_left(node_typ
 }
 
 /* 右旋: 左孩子y变为当前节点x的父亲节点，x成为y的右孩子，y之前的右孩子成为x的左孩子 */
-template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>::rotate_right(node_type* x){
+template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::rotate_right(node_type* x){
     node_type* y = x->left_;
     x->left_ = y->right_;
     if (!isNil(y->right_)){
@@ -264,8 +264,8 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>::rotate_right(node_ty
 
 
 /* 插入新元素的逻辑定义 */
-template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>::insert_new_node_impl(node_type* x) {
+template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert_new_node_impl(node_type* x) {
     x->left_ = nil_;
     x->right_ = nil_;
     x->is_black_ = false;
@@ -297,8 +297,8 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>::insert_new_node_impl
 }
 
 /* 插入新元素后纠正红黑树的逻辑定义 */
-template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>::insert_fix_impl(node_type* x) noexcept{
+template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert_fix_impl(node_type* x) noexcept{
     while (x != root_ && x->parent_->is_black_ == false) {
         node_type* y = x->parent_; /* 此时保证y是red */
         /* uncle 存在且为红色 */
@@ -335,9 +335,18 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>::insert_fix_impl(node
 }
 
 /* 插入新元素 */
-template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP>
+template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
 template<typename V, typename>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>::insert(V&& value){
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert(V&& value){
+    if constexpr (!IS_MULTI) {
+        node_type* temp = find_node(value);
+        if (temp) {
+            if constexpr (IS_MAP) {
+                temp->data_.second = mstl::forward<value_type> (value.second);
+            }
+            return;
+        }
+    }
     node_type* new_node = allocator_.allocate(1);
     new(new_node) node_type(mstl::forward<V>(value));
     insert_new_node_impl(new_node);
@@ -347,8 +356,8 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>::insert(V&& value){
 
 
 /* 删除节点的逻辑实现 */
-template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>:: erase_node_impl(node_type* node) {
+template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>:: erase_node_impl(node_type* node) {
     /* node有两个节点，找到第一个后继的节点，问题转化为删除第一个后继节点node，转化后的node不可能有左孩子 */
     if (!isNil(node->left_) && !isNil(node->right_)) {
         node_type* temp = node->right_;
@@ -487,9 +496,9 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>:: erase_node_impl(nod
 }
 
 /* 删除函数 */
-template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP>
+template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
 template<typename V, typename>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP>::erase(const V& value){
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::erase(const V& value){
     node_type* node = find_node(value);
     if (node != nullptr) {
         erase_node_impl(node);

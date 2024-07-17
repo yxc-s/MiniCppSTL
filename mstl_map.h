@@ -6,10 +6,10 @@
 
 NAMESPACE_MSTL
 
-namespace set_base{
-template<typename T, typename COMPARE_FUNCTION, typename Allocator, const bool IS_MULTI>
-class set_impl: public mstl::RedBlackTree<T, T, COMPARE_FUNCTION, Allocator, false, IS_MULTI> {
-    using tree_base = mstl::RedBlackTree<T, T, COMPARE_FUNCTION, Allocator, false, IS_MULTI>;
+namespace map_base{
+template<typename T, typename U, typename COMPARE_FUNCTION, typename Allocator, const bool IS_MULTI>
+class map_impl: public mstl::RedBlackTree<T, U, COMPARE_FUNCTION, Allocator, true, IS_MULTI> {
+    using tree_base = mstl::RedBlackTree<T, U, COMPARE_FUNCTION, Allocator, true, IS_MULTI>;
 public:
     using value_type = typename tree_base::node_type;
     using pointer = value_type*;
@@ -18,8 +18,8 @@ public:
     using const_reference = const reference;
     using difference_type  =  std::ptrdiff_t;
 
-    set_impl() = default;
-    virtual ~set_impl() override = default;
+    map_impl() = default;
+    virtual ~map_impl() override = default;
 
     /* Iterator : 注意！这楼里的value_type是红黑树的node类型，pointer也一样，但是，reference是node里面的data类型!! 并且没有->重载! */
     template<typename ValueType, typename ReferenceType = typename ValueType::reference, const bool IS_REVERSE = false>
@@ -28,6 +28,7 @@ public:
         using value_type         =   ValueType;
         using pointer            =   value_type*;
         using data_reference     =   ReferenceType;
+        using data_pointer       =   typename value_type::pointer;
         using iterator_category  =   mstl::bidirectional_iterator_tag;
 
 
@@ -37,7 +38,8 @@ public:
         ~iterator_impl() override {};
 
         data_reference operator*() { return ptr_->data_; }
-    
+        data_pointer operator->()  { return &(ptr_->data_); }
+
         iterator_impl& operator++() override { 
             if constexpr (IS_REVERSE){
                 find_pre();
@@ -146,18 +148,18 @@ public:
     const_reverse_iterator crend() { return const_reverse_iterator(nullptr); }
 };
 
-}/* end set_base namespace */
+}/* end map_base namespace */
 
 
 
-/* set : 相同元素最多只有一个的红黑树 */
-template<typename T, typename COMPARE_FUNCTION = mstl::less<T>, typename Allocator = mstl::Allocator<T>>
-class set: public set_base::set_impl<T, COMPARE_FUNCTION, Allocator, false> {};
+/* map : 相同元素最多只有一个的红黑树，这里跟set的区别是多了一个模板参数U（表示value的类型） */
+template<typename T, typename U, typename COMPARE_FUNCTION = mstl::less<mstl::pair<T, U>>, typename Allocator = mstl::Allocator<mstl::pair<T, U>>>
+class map: public map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, false> {};
 
 
 
-/* multiset : 相同元素可以有很多的红黑树 */
-template<typename T, typename COMPARE_FUNCTION = mstl::less<T>, typename Allocator = mstl::Allocator<T>>
-class multiset: public set_base::set_impl<T, COMPARE_FUNCTION, Allocator, true> {};
+/* multimap : 相同元素可以有很多的红黑树 */
+template<typename T, typename U, typename COMPARE_FUNCTION = mstl::less<mstl::pair<T, U>>, typename Allocator = mstl::Allocator<mstl::pair<T, U>>>
+class multimap: public map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, true> {};
 
 END_NAMESPACE
