@@ -21,7 +21,7 @@ public:
 
     pair(mstl::pair<T, U>&& other) : first(mstl::move(other.first)), second(mstl::move(other.second)) {}
 
-    pair& operator=(const mstl::pair<T, U>& other) {
+    pair& operator =(const mstl::pair<T, U>& other) {
         if (this != &other) {
             first = other.first;
             second = other.second;
@@ -59,7 +59,7 @@ public:
 
 template<typename T, typename U>
 inline bool operator ==(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs){
-    return static_cast<bool>(lhs.first == rhs.second && lhs.second == rhs.second);
+    return static_cast<bool>(lhs.first == rhs.first && lhs.second == rhs.second);
 }
 
 template<typename T, typename U>
