@@ -10,13 +10,9 @@ https://www.cnblogs.com/qingergege/p/7351659.html
 
 NAMESPACE_MSTL 
 
-//TODO:这里是不是不需要友元类？ 
-// template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP>
-// class RedBlackTree;
-
-template<typename T, typename U, const bool IS_MAP>//, typename Allocator, typename Compare>
+/* 红黑树节点 */
+template<typename T, typename U, const bool IS_MAP>
 class RbtNode{
-  //  friend class RedBlackTree<T, U, Compare, Allocator, IS_MAP>;
 public:
     using value_type      =  typename std::conditional_t<IS_MAP, mstl::pair<T, U>, T>;
     using const_value_type = const value_type;
@@ -78,7 +74,6 @@ public:
     reference operator *() { return data_; } 
     const_reference operator*() const { return data_; }
 
-//private:
     RbtNode*   left_;
     RbtNode*   right_;
     RbtNode*   parent_;
@@ -88,7 +83,7 @@ public:
 };
 
 
-
+/* 红黑树实现，并编写了关联式容器的接口 */
 template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
 class RedBlackTree{
 public:
@@ -96,40 +91,53 @@ public:
     using value_type               =    U;
     using size_type                =    mstl::size_t;
     using node_type                =    RbtNode<T, U, IS_MAP>;
-    //using node_type                =    RbtNode<T, U, IS_MAP, Allocator, Compare>;
     using compare_function_type    =    Compare;
     using allocator_type           =    typename Allocator::template rebind<node_type>::other;
 
 
 
     RedBlackTree() : nil_(nullptr), root_(nullptr), current_size_(0){}
-
     virtual ~RedBlackTree(){
         destory(root_);
     }
-
-#if 0
-    // template<bool B = IS_MAP, typename = std::enable_if_t<!B>>
-    // void insert(const key_type& key);
-
-    // template<bool B = IS_MAP, typename = std::enable_if_t<!B>>
-    // void insert(key_type&& key);
-
-    // template<bool B = IS_MAP, typename = std::enable_if_t<B>>
-    // void insert(const mstl::pair<key_type, value_type>& value);
-
-    // template<bool B = IS_MAP, typename = std::enable_if_t<B>>
-    // void insert(mstl::pair<key_type, value_type>&& value);
-
-#endif
     
+
     /* 这里注意要去除一下V的引用才可以，不然只能接受右值(签名增加了enable_if可能会导致只接受右值) */
+    /* 插入元素 */
     template<typename V, typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<V>, typename node_type::value_type>>>
     void insert(V&& value);
 
+    /* 删除元素 */
     template<typename V, typename = std::enable_if_t<std::is_same_v<V, typename node_type::value_type>>>
     void erase(const V& value);
 
+    /* 统计指定元素出现次数 */
+    size_type count(const typename node_type::value_type& value) noexcept {
+        if constexpr (!IS_MULTI) {
+            auto t = find_node(value);
+            return isNil(find_node(value)) ? 0 : 1;
+        }
+        else{
+            node_type* node = this->find_node(value);
+            if (isNil(node)) {
+                return 0;
+            }
+            size_type res = 0;
+            auto check = [&, this](auto&& self, node_type* node)->void{
+                if (isNil(node) || node->data_ != value) {
+                    return;
+                }
+                res ++;
+                self(self, node->left_);
+                self(self, node->right_);
+            };
+            check(check, node);
+            return res;
+        }
+    }
+
+
+    /* 获取树中元素数量 */
     size_type size() const noexcept { return current_size_; }
 
 
@@ -185,7 +193,35 @@ protected:
                 cur = cur->left_;
             }
         }
-        return nullptr;
+        return nil_;
+    }
+
+    template<const bool IS_UPPER_BOUND>
+    node_type* binary_search_impl(const typename node_type::value_type& value) {
+        node_type* cur = root_;
+        while (cur != nil_){
+            if constexpr (!IS_UPPER_BOUND){
+                if (cur->data_ == value) {
+                    return cur;
+                }
+            }
+            else {
+                if (compare_function_(value, cur->data_)) {
+                    return cur;
+                }
+            }
+            if (compare_function_(cur->data_, value)){
+                cur = cur->right_;
+            }
+            else{
+                cur = cur->left_;
+            }
+        }
+        return nil_;
+    }
+
+    node_type* find_up_node(const typename node_type::value_type& value) {
+        
     }
 
     /* 四个获取边界元素函数，用于获取迭代器时调用 */

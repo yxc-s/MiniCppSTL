@@ -170,7 +170,7 @@ int main(){
 //红黑树测试，好像测试不了，得先继承才行。。
 #if 0
     {   
-        mstl::set<int> s;
+        mstl::multiset<int> s;
         s.insert(2);
         s.insert(4);
         for (int i = 10; i >= -2; --i){
@@ -185,6 +185,13 @@ int main(){
             auto it = s.begin();
             it = next(it);
             cout << (*it) << endl;
+        }
+        cout <<"multiset count  2 : " << s.count(2) << endl;
+        {
+            auto it = s.lower_bound(2);
+            cout << "lower_bound set" << (*it) << endl;
+            auto rt = s.upper_bound(2);
+            cout << "upper_bound set" << (*rt) << endl;
         }
     }
 #endif
@@ -202,6 +209,13 @@ int main(){
         for (auto&[x, y]: mapp){
             cout << x << " " << y <<endl; 
         }
+        cout << "map count : " << mapp.count(mstl::pair{2, -1}) << endl;
+        auto it = mapp.begin();
+        cout << (it->first) << endl;
+        auto tt = mapp.lower_bound(mstl::make_pair(2, -1));
+        cout << "mapp lowerbound : " << (tt->first) << " " << tt->second << endl;
+        auto rr = mapp.upper_bound(mstl::make_pair(2, -1));
+        cout << "mapp upperbound : " << (rr->first) << " " << rr->second << endl;
     }
 #endif
     return 0;

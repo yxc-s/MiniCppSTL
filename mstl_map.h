@@ -10,6 +10,8 @@ namespace map_base{
 template<typename T, typename U, typename COMPARE_FUNCTION, typename Allocator, const bool IS_MULTI>
 class map_impl: public mstl::RedBlackTree<T, U, COMPARE_FUNCTION, Allocator, true, IS_MULTI> {
     using tree_base = mstl::RedBlackTree<T, U, COMPARE_FUNCTION, Allocator, true, IS_MULTI>;
+    using node_type = typename tree_base::node_type;
+    using node_value_type = typename node_type::value_type;
 public:
     using value_type = typename tree_base::node_type;
     using pointer = value_type*;
@@ -130,10 +132,10 @@ public:
     };
    
     /* 四种迭代器类型 , 这里的引用类型使用的是红黑树中node的reference类型! */
-    using iterator = iterator_impl<value_type, typename value_type::reference>;
-    using const_iterator = iterator_impl<const value_type, typename value_type::const_reference>;
-    using reverse_iterator = iterator_impl<value_type, typename value_type::reference, true>;
-    using const_reverse_iterator = iterator_impl<const value_type, typename value_type::const_reference, true>;
+    using iterator = iterator_impl<node_type, typename node_type::reference>;
+    using const_iterator = iterator_impl<const node_type, typename node_type::const_reference>;
+    using reverse_iterator = iterator_impl<node_type, typename node_type::reference, true>;
+    using const_reverse_iterator = iterator_impl<const node_type, typename node_type::const_reference, true>;
 
     /* 正向迭代器相关函数 */
     iterator begin() { return iterator(tree_base::left_most()); }
@@ -146,6 +148,15 @@ public:
     reverse_iterator rend() { return reverse_iterator(nullptr); }
     const_reverse_iterator crbegin() { return const_reverse_iterator(tree_base::right_most()); }
     const_reverse_iterator crend() { return const_reverse_iterator(nullptr); }
+
+    /* 为什么这个函数不在红黑树里设计了？ 因为该算法返回迭代器，在这里有迭代器的定义，实现起来更方便! */
+    /* 查找! */
+    iterator lower_bound(const node_value_type& value) {
+        return iterator(tree_base::template binary_search_impl<false>(value));
+    }
+    iterator upper_bound(const node_value_type& value) {
+        return iterator(tree_base::template binary_search_impl<true>(value));
+    }
 };
 
 }/* end map_base namespace */
