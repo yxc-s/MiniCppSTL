@@ -107,9 +107,6 @@ public:
     template<typename V, typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<V>, typename node_type::value_type>>>
     void insert(V&& value);
 
-    /* 删除元素 */
-    template<typename V, typename = std::enable_if_t<std::is_same_v<V, typename node_type::value_type>>>
-    void erase(const V& value);
 
     /* 统计指定元素出现次数 */
     size_type count(const typename node_type::value_type& value) noexcept {
@@ -140,6 +137,8 @@ public:
     /* 获取树中元素数量 */
     size_type size() const noexcept { return current_size_; }
 
+    /* 检查树是否为空 */
+    bool empty() const noexcept { return static_cast<bool>(current_size_ == 0); }
 
 private:
     node_type*              nil_;
@@ -150,7 +149,7 @@ private:
 
     /* 后序遍历，析构时调用 */
     void destory(node_type* node) {
-        if (node != nullptr) {
+        if (!isNil(node)) {
             destory(node->left_);
             destory(node->right_);
             node->~node_type();
@@ -177,6 +176,10 @@ protected:
     
     /* 删除元素逻辑的具体实现 */
     void erase_node_impl(node_type* node);
+
+        /* 删除元素 */
+    //template<typename V, typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<V>, typename node_type::value_type>>>
+    void erase_impl(const typename node_type::value_type& value);
 
     /* 查找指定数值节点 */
     template<typename V>
@@ -220,9 +223,6 @@ protected:
         return nil_;
     }
 
-    node_type* find_up_node(const typename node_type::value_type& value) {
-        
-    }
 
     /* 四个获取边界元素函数，用于获取迭代器时调用 */
     node_type* left_most() noexcept {
@@ -536,8 +536,8 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>:: erase_nod
 
 /* 删除函数 */
 template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
-template<typename V, typename>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::erase(const V& value){
+//template<typename V, typename>
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::erase_impl(const typename node_type::value_type& value){
     node_type* node = find_node(value);
     if (node != nullptr) {
         erase_node_impl(node);

@@ -12,7 +12,7 @@ If this repository is helpful for your studies or work, please consider giving i
 TODO: 
 
 DataStructure:
-  map和set的(erase, lower_bound, upper_bound, count, empty)
+  map和set的(erase)
   unordered_map, unordered_set,
   stack,
   queue,

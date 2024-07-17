@@ -168,7 +168,7 @@ int main(){
 
 
 //红黑树测试，好像测试不了，得先继承才行。。
-#if 0
+#if 1
     {   
         mstl::multiset<int> s;
         s.insert(2);
@@ -193,10 +193,30 @@ int main(){
             auto rt = s.upper_bound(2);
             cout << "upper_bound set" << (*rt) << endl;
         }
+        cout << s.size() << endl;
+        for (auto it = s.cbegin(); it != s.cend(); ++it){
+            cout << (*it) << " \n"[mstl::next(it) == s.cend()];
+        }
+        s.erase(-2);
+        s.erase(10);
+        for (auto it = s.cbegin(); it != s.cend(); ++it){
+            cout << (*it) << " \n"[mstl::next(it) == s.cend()];
+        }
+        s.erase(5);
+        s.erase(5);
+        for (auto it = s.cbegin(); it != s.cend(); ++it){
+            cout << (*it) << " \n"[mstl::next(it) == s.cend()];
+        }
+        auto it = s.begin();
+        s.erase(it);
+        for (auto it = s.cbegin(); it != s.cend(); ++it){
+            cout << (*it) << " \n"[mstl::next(it) == s.cend()];
+        }
+        s.erase(s.begin());
     }
 #endif
 
-#if 1
+#if 0
     {
         mstl::map<int, int> mapp;
         mapp.insert(mstl::pair{2, 3});
@@ -216,6 +236,17 @@ int main(){
         cout << "mapp lowerbound : " << (tt->first) << " " << tt->second << endl;
         auto rr = mapp.upper_bound(mstl::make_pair(2, -1));
         cout << "mapp upperbound : " << (rr->first) << " " << rr->second << endl;
+        
+        for (auto&[x, y]: mapp){
+            cout << x << " " << y <<' '; 
+        }it = mapp.begin();
+        cout << endl;
+        
+        for (auto&[x, y]: mapp){
+            cout << x << " " << y <<' '; 
+        }
+        cout << endl;
+        mapp.erase(it);
     }
 #endif
     return 0;

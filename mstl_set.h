@@ -20,11 +20,14 @@ public:
     using const_reference = const reference;
     using difference_type  =  std::ptrdiff_t;
 
+    /* 当前类和迭代器类里都根据 IS_MULTI 定义了一个相同的迭代器类型，保证在erase的时候进行类型检查不会出错 */
+    using iter_type = typename std::conditional_t<IS_MULTI, mstl::multiset_iterator, mstl::set_iterator>;
+
     set_impl() = default;
     virtual ~set_impl() override = default;
 
     /* Iterator : 注意！这楼里的value_type是红黑树的node类型，pointer也一样，但是，reference是node里面的data类型!! 并且没有->重载! */
-    template<typename ValueType, typename ReferenceType = typename ValueType::reference, const bool IS_REVERSE = false>
+    template<typename ValueType, typename ReferenceType, const bool IS_REVERSE>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, ReferenceType, IS_REVERSE>, ValueType> {
     public:
         using value_type         =   ValueType;
@@ -32,6 +35,9 @@ public:
         using data_reference     =   ReferenceType;
         using iterator_category  =   mstl::bidirectional_iterator_tag;
 
+        /* 该类型用于操作时类型的安全匹配 */
+        using iter_type          =   typename std::conditional_t<IS_MULTI, 
+            mstl::multiset_iterator, mstl::set_iterator>;
 
         using this_type = iterator_impl<value_type, data_reference, IS_REVERSE>;
         
@@ -130,8 +136,8 @@ public:
     };
    
     /* 四种迭代器类型 , 这里的引用类型使用的是红黑树中node的reference类型! */
-    using iterator = iterator_impl<node_type, typename node_type::reference>;
-    using const_iterator = iterator_impl<const node_type, typename node_type::const_reference>;
+    using iterator = iterator_impl<node_type, typename node_type::reference, false>;
+    using const_iterator = iterator_impl<const node_type, typename node_type::const_reference, false>;
     using reverse_iterator = iterator_impl<node_type, typename node_type::reference, true>;
     using const_reverse_iterator = iterator_impl<const node_type, typename node_type::const_reference, true>;
 
@@ -155,6 +161,15 @@ public:
     iterator upper_bound(const node_value_type& value) {
         return iterator(tree_base::template binary_search_impl<true>(value));
     }
+
+    template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::iter_type, iter_type>>>
+    void erase(ITER_TYPE iter) noexcept { 
+        if (iter == end()) {
+            return;
+        }
+        tree_base::erase_impl(*iter); 
+    }
+    void erase(const node_value_type& value) noexcept { tree_base::erase_impl(value); }
 };
 
 }/* end set_base namespace */
