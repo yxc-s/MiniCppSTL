@@ -52,6 +52,16 @@ NAMESPACE_MSTL
 
 /******************************迭代器类型定义******************************/
 
+
+struct vector_iterator{};
+struct array_iterator{};
+struct deque_iterator{};
+struct set_iterator{};
+struct multiset_iterator{};
+struct map_iterator{};
+struct multimap_iterator{};
+
+
 /* 迭代器类型定义 Iterator type definition */
 struct input_iterator_tag {};
 struct output_iterator_tag {};
@@ -66,6 +76,7 @@ inline ITER_TYPE next(ITER_TYPE iter){
 }
 
 /* previous iterator， 限定双向迭代器+随机访问迭代器才能用 */
+//TODO:这里需要优化，空指针--无效（关联式容器）
 template <typename ITER_TYPE, typename = std::enable_if_t<std::is_base_of_v<mstl::bidirectional_iterator_tag,  typename ITER_TYPE::iterator_category>>>
 inline ITER_TYPE prev(ITER_TYPE iter){
     return (--iter);
