@@ -85,7 +85,6 @@ public:
         
         iterator_impl(pointer ptr) : ptr_(ptr) {}
 
-        /* 派生类函数， type根据模板参数来指定 */
         reference operator*() const { return *ptr_; }
         pointer operator->()  { return ptr_; }
 
@@ -129,7 +128,7 @@ public:
             return new_iter; 
         }
 
-        iterator_impl operator+(difference_type offset) const override { 
+        iterator_impl operator+(difference_type offset) const { 
             if constexpr (IS_REVERSE) {
                 return iterator_impl(ptr_ - offset);
             } else {
@@ -137,7 +136,7 @@ public:
             }
         }
 
-        iterator_impl operator-(difference_type offset) const override { 
+        iterator_impl operator-(difference_type offset) const { 
             if constexpr (IS_REVERSE) {
                 return iterator_impl(ptr_ + offset);
             } else {
@@ -145,33 +144,13 @@ public:
             }
         }
 
-        difference_type operator-(const this_type& other) const override { 
-            return ptr_ - other.ptr_; 
-        }
-
-        bool operator==(const this_type& other) const override { 
-            return ptr_ == other.ptr_; 
-        }
-
-        bool operator!=(const this_type& other) const override { 
-            return !(*this == other); 
-        }
-
-        bool operator <(const this_type& other) const{
-            return ptr_ < other.ptr_;
-        }
-        
-        bool operator <=(const this_type& other) const{
-            return ptr_ <= other.ptr_;
-        }
-
-        bool operator >(const this_type& other) const{
-            return !(*this <= other);
-        }
-
-        bool operator >=(const this_type& other) const{
-            return !(*this < other);
-        }
+        difference_type operator-(const this_type& other) const { return ptr_ - other.ptr_; }
+        bool operator==(const this_type& other) const { return ptr_ == other.ptr_; }
+        bool operator!=(const this_type& other) const { return !(*this == other); }
+        bool operator <(const this_type& other) const { return ptr_ < other.ptr_; }
+        bool operator <=(const this_type& other) const { return ptr_ <= other.ptr_; }
+        bool operator >(const this_type& other) const { return !(*this <= other); }
+        bool operator >=(const this_type& other) const { return !(*this < other); }
 
     private:
         pointer ptr_;

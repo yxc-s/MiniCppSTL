@@ -7,7 +7,7 @@
 #include "mstl_deque.h"
 #include <bits/stdc++.h>
 #include "mstl_set.h"
-
+#include "mstl_map.h"
 
 
 using namespace std;
@@ -168,20 +168,40 @@ int main(){
 
 
 //红黑树测试，好像测试不了，得先继承才行。。
-#if 1
+#if 0
     {   
         mstl::set<int> s;
         s.insert(2);
         s.insert(4);
-        for (int i = 10; i >= 1; --i){
+        for (int i = 10; i >= -2; --i){
+            s.insert(i);
             s.insert(i);
         }
-        cout << s.size() << endl;
-        s.erase(10);
-        cout << s.size() << endl;
-        s.insert(-10);
-        auto it = s.begin();
-        cout << (*it) << endl;
+        for (auto it = s.rbegin(); it != s.rend(); ++it) {
+            cout << (*it) << " ";
+        }
+        cout << endl;
+        {
+            auto it = s.begin();
+            it = next(it);
+            cout << (*it) << endl;
+        }
+    }
+#endif
+
+#if 1
+    {
+        mstl::map<int, int> mapp;
+        mapp.insert(mstl::pair{2, 3});
+        for (int i = 110; i >99; --i ){
+            mapp.insert(mstl::pair{i, -i});
+        }
+        for (auto&[x, y]: mapp){
+            cout << x << " " << y <<endl; y = -1;
+        }
+        for (auto&[x, y]: mapp){
+            cout << x << " " << y <<endl; 
+        }
     }
 #endif
     return 0;

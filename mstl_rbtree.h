@@ -3,7 +3,10 @@
 #include <type_traits>   //std::conditional_t
 #include "mstl_pair.h"
 
-
+/*
+红黑树参考的：https://blog.csdn.net/qq_40843865/article/details/102498310
+https://www.cnblogs.com/qingergege/p/7351659.html
+*/
 
 NAMESPACE_MSTL 
 

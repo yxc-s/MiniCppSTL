@@ -87,7 +87,6 @@ public:
         
         iterator_impl(size_t index, const mstl::deque<T>& deque) : index_(index), deque_(deque) {}
 
-        /* 派生类函数， type根据模板参数来指定 */
         reference operator*() const { return *deque_.get_position_pointer(index_); }
         pointer operator->()  { return *deque_.get_position_pointer(index_); }
 
@@ -132,7 +131,7 @@ public:
             return new_iter; 
         }
 
-        iterator_impl operator+(difference_type offset) const override { 
+        iterator_impl operator+(difference_type offset) const { 
             if constexpr (IS_REVERSE) {
                 return iterator_impl(index_ - offset, deque_);
             } else {
@@ -140,7 +139,7 @@ public:
             }
         }
 
-        iterator_impl operator-(difference_type offset) const override { 
+        iterator_impl operator-(difference_type offset) const { 
             if constexpr (IS_REVERSE) {
                 return iterator_impl(index_ + offset, deque_);
             } else {
@@ -148,33 +147,13 @@ public:
             }
         }
 
-        difference_type operator-(const this_type& other) const override { 
-            return index_ - other.index_; 
-        }
-
-        bool operator==(const this_type& other) const override { 
-            return index_ == other.index_; 
-        }
-
-        bool operator!=(const this_type& other) const override { 
-            return !(*this == other); 
-        }
-
-        bool operator <(const this_type& other) const{
-            return index_ < other.index_;
-        }
-        
-        bool operator <=(const this_type& other) const{
-            return index_ <= other.index_;
-        }
-
-        bool operator >(const this_type& other) const{
-            return !(*this <= other);
-        }
-
-        bool operator >=(const this_type& other) const{
-            return !(*this < other);
-        }
+        difference_type operator-(const this_type& other) const { return index_ - other.index_; }
+        bool operator==(const this_type& other) const { return index_ == other.index_; }
+        bool operator!=(const this_type& other) const { return !(*this == other); }
+        bool operator <(const this_type& other) const{ return index_ < other.index_; }
+        bool operator <=(const this_type& other) const{ return index_ <= other.index_; }
+        bool operator >(const this_type& other) const{ return !(*this <= other); }
+        bool operator >=(const this_type& other) const{ return !(*this < other); }
 
     private:
         size_t index_;
