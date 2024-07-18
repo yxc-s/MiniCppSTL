@@ -1,7 +1,7 @@
-#include "mstl_global.h"
-#include "mstl_rbtree.h"
-#include "mstl_allocator.h"
-#include "mstl_iterator_base.h"
+#include "mstl_global"
+#include "mstl_rbtree"
+#include "mstl_allocator"
+#include "mstl_iterator_base"
 
 
 NAMESPACE_MSTL
@@ -150,8 +150,8 @@ public:
         }
 
         /* 迭代器比较运算符 */
-        bool operator==(const this_iter_type& other) const { return ptr_ == other.ptr_; }
-        bool operator!=(const this_iter_type& other) const { return !(*this == other); }
+        virtual bool operator==(const this_iter_type& other) const override{ return ptr_ == other.ptr_; }
+        virtual bool operator!=(const this_iter_type& other) const override{ return !(*this == other); }
         this_iter_type& operator = (const this_iter_type& other) { 
             ptr_ = other.ptr_; 
             parent_map_ = other.parent_map_; 

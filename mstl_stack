@@ -1,6 +1,6 @@
-#include "mstl_global.h"
-#include "mstl_deque.h"
-#include "mstl_vector.h"
+#include "mstl_global"
+#include "mstl_deque"
+#include "mstl_vector"
 
 
 NAMESPACE_MSTL

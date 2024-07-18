@@ -1,5 +1,5 @@
 #pragma once
-#include "mstl_global.h"
+#include "mstl_global"
 #include <limits>            //std::numeric_limits
 
 NAMESPACE_MSTL

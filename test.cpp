@@ -1,14 +1,14 @@
 #include <iostream>
-#include "mstl_vector.h"
-#include "mstl_array.h"
+#include "mstl_vector"
+#include "mstl_array"
 
-#include "mstl_pair.h"
-#include "mstl_algorithm.h"
-#include "mstl_deque.h"
+#include "mstl_pair"
+#include "mstl_algorithm"
+#include "mstl_deque"
 #include <bits/stdc++.h>
-#include "mstl_set.h"
-#include "mstl_map.h"
-#include "mstl_stack.h"
+#include "mstl_set"
+#include "mstl_map"
+#include "mstl_stack"
 
 using namespace std;
 int main(){
@@ -182,7 +182,7 @@ int main(){
 
 
 //红黑树测试，好像测试不了，得先继承才行。。
-#if 0
+#if 1
     {   
         mstl::multiset<int> s;
         s.insert(2);
@@ -232,7 +232,7 @@ int main(){
     }
 #endif
 
-#if 0
+#if 1
     {
         mstl::map<int, int> mapp;
         mapp.insert(mstl::pair{2, 3});

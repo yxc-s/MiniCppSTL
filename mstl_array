@@ -1,8 +1,8 @@
 #pragma once
-#include "mstl_global.h"
-#include "mstl_allocator.h"
-#include "mstl_memory.h"
-#include "mstl_iterator_base.h"
+#include "mstl_global"
+#include "mstl_allocator"
+#include "mstl_memory"
+#include "mstl_iterator_base"
 
 #include <type_traits>       //std::is_trivially_copyable
 
@@ -73,7 +73,7 @@ public:
      /* Iterator */
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
-        using this_iter_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
+        using this_iter_type = iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>;
     public:
         using value_type         =   ValueType;
         using pointer            =   PointerType;
@@ -144,8 +144,8 @@ public:
         }
 
         difference_type operator-(const this_iter_type& other) const { return ptr_ - other.ptr_; }
-        bool operator==(const this_iter_type& other) const { return ptr_ == other.ptr_; }
-        bool operator!=(const this_iter_type& other) const { return !(*this == other); }
+        virtual bool operator==(const this_iter_type& other) const override { return ptr_ == other.ptr_; }
+        virtual bool operator!=(const this_iter_type& other) const override { return !(*this == other); }
         bool operator <(const this_iter_type& other) const { return ptr_ < other.ptr_; }
         bool operator <=(const this_iter_type& other) const { return ptr_ <= other.ptr_; }
         bool operator >(const this_iter_type& other) const { return !(*this <= other); }

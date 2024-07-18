@@ -1,8 +1,8 @@
 #pragma once
 
-#include "mstl_global.h"
-#include "mstl_utility.h"
-#include "mstl_vector.h"
+#include "mstl_global"
+#include "mstl_utility"
+#include "mstl_vector"
 
 NAMESPACE_MSTL
 

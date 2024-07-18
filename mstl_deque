@@ -1,8 +1,8 @@
 #pragma once
 
-#include "mstl_global.h"
-#include "mstl_allocator.h"
-#include "mstl_iterator_base.h" 
+#include "mstl_global"
+#include "mstl_allocator"
+#include "mstl_iterator_base" 
 
 #include <type_traits>
 

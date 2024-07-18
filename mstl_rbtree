@@ -1,7 +1,7 @@
 #pragma once
 
 #include <type_traits>   //std::conditional_t
-#include "mstl_pair.h"
+#include "mstl_pair"
 
 /*
 红黑树参考的：https://blog.csdn.net/qq_40843865/article/details/102498310
