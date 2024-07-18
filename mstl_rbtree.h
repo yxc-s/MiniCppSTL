@@ -21,18 +21,26 @@ public:
     using reference       =  value_type&;
     using const_reference =  const value_type&;
 
-    explicit RbtNode(const value_type& value) : 
-        left_(nullptr), 
-        right_(nullptr), 
-        parent_(nullptr), 
+    /* nil专用构造函数 */
+    explicit RbtNode(RbtNode<T, U, IS_MAP>* nil):
+        left_(nil), 
+        right_(nil), 
+        parent_(nil), 
+        is_black_(false)
+    {}
+
+    RbtNode(const value_type& value, RbtNode<T, U, IS_MAP>* nil) : 
+        left_(nil), 
+        right_(nil), 
+        parent_(nil), 
         data_(value),
         is_black_(false)
     {}
 
-    explicit RbtNode(value_type&& value) : 
-        left_(nullptr), 
-        right_(nullptr), 
-        parent_(nullptr), 
+    RbtNode(value_type&& value, RbtNode<T, U, IS_MAP>& nil) : 
+        left_(nil), 
+        right_(nil), 
+        parent_(nil), 
         data_(mstl::move(value)),
         is_black_(false)
     {}
@@ -95,10 +103,16 @@ public:
     using allocator_type           =    typename Allocator::template rebind<node_type>::other;
 
 
-
-    RedBlackTree() : nil_(nullptr), root_(nullptr), current_size_(0){}
+#include <iostream>
+    RedBlackTree() : nil_(allocator_.allocate(1)), current_size_(0){
+        new(nil_)  node_type(nullptr);
+        root_ = nil_; /* 一定不能在初始化构造列表里直接构造，不然root_ == nil_为false*/
+    }
     virtual ~RedBlackTree(){
         destory(root_);
+        current_size_ = 0;
+        nil_->~node_type();
+        allocator_.deallocate(nil_, 1);
     }
     
 
@@ -140,8 +154,13 @@ public:
     /* 检查树是否为空 */
     bool empty() const noexcept { return static_cast<bool>(current_size_ == 0); }
 
+    void clear() noexcept { 
+        destory(root_); 
+        root_ = nil_;       /* 如果没有这个语句，那调用clear再析构就会error */
+        current_size_ = 0; 
+    }
+
 private:
-    node_type*              nil_;
     node_type*              root_;
     size_type               current_size_;
     compare_function_type   compare_function_;
@@ -158,13 +177,15 @@ private:
     }
 
 protected:
+    /* 哨兵! */
+    node_type*              nil_;
     
     /* 一些小函数 */
     bool is_left(node_type* x) const noexcept { return (x->parent_)->left_ == x; }
     bool is_right(node_type* x) const noexcept { return (x->parent_)->right_ == x; }
     bool has_brother(node_type* x) const noexcept { return is_left(x) ? x->parent_->right_ != nil_ : x->parent_->left_ != nil_; }
     node_type* get_brother(node_type* x) const noexcept { return is_left(x) ? x->parent_->right_ : x->parent_->left_;  }
-    bool isNil(node_type* x) const noexcept { return x == nil_;}
+    bool isNil(const node_type* x) const noexcept { return x == nil_;}
 
     /* rotate 函数声明 */
     void rotate_left(node_type* x);
@@ -177,10 +198,10 @@ protected:
     /* 删除元素逻辑的具体实现 */
     void erase_node_impl(node_type* node);
 
-        /* 删除元素 */
-    //template<typename V, typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<V>, typename node_type::value_type>>>
+    /* 删除元素 */
     void erase_impl(const typename node_type::value_type& value);
-
+    void erase_impl(node_type* node);
+    
     /* 查找指定数值节点 */
     template<typename V>
     node_type* find_node(const V& value){
@@ -227,28 +248,28 @@ protected:
     /* 四个获取边界元素函数，用于获取迭代器时调用 */
     node_type* left_most() noexcept {
         node_type* cur = root_;
-        while (cur && !isNil(cur->left_)) {
+        while (!isNil(cur) && !isNil(cur->left_)) {
             cur = cur->left_;
         }
         return cur;
     }
     const node_type* left_most() const noexcept {
-        node_type* cur = root_;
-        while (cur && !isNil(cur->right_)) {
-            cur = cur->right_;
+        const node_type* cur = root_;
+        while (!isNil(cur) && !isNil(cur->left_)) {
+            cur = cur->left_;
         }
         return cur;
     }
     node_type* right_most() noexcept {
         node_type* cur = root_;
-        while (cur && !isNil(cur->right_)) {
+        while (!isNil(cur) && !isNil(cur->right_)) {
             cur = cur->right_;
         }
         return cur;
     }
     const node_type* right_most() const noexcept {
-        node_type* cur = root_;
-        while (cur && !isNil(cur->right_)) {
+        const node_type* cur = root_;
+        while (!isNil(cur) && !isNil(cur->right_)) {
             cur = cur->right_;
         }
         return cur;
@@ -308,7 +329,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert_new
     x->left_ = nil_;
     x->right_ = nil_;
     x->is_black_ = false;
-    if (root_ == nil_){
+    if (isNil(root_)){
         root_ = x;
         x->parent_ = nil_;
         x->is_black_ = true;
@@ -379,7 +400,7 @@ template<typename V, typename>
 inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert(V&& value){
     if constexpr (!IS_MULTI) {
         node_type* temp = find_node(value);
-        if (temp) {
+        if (!isNil(temp)) {
             if constexpr (IS_MAP) {
                 temp->data_.second = mstl::forward<value_type> (value.second);
             }
@@ -387,7 +408,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert(V&&
         }
     }
     node_type* new_node = allocator_.allocate(1);
-    new(new_node) node_type(mstl::forward<V>(value));
+    new(new_node) node_type(mstl::forward<V>(value), nil_);
     insert_new_node_impl(new_node);
     insert_fix_impl(new_node);
     current_size_ ++;
@@ -415,7 +436,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>:: erase_nod
         }
         node->~node_type();
         allocator_.deallocate(node, 1);
-        node = nullptr;
+        node = nil_;
         return;
     }
 
@@ -431,7 +452,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>:: erase_nod
             }
             node->~node_type();
             allocator_.deallocate(node, 1);
-            node = nullptr;
+            node = nil_;
         }
         /* 最麻烦的情况，此时一定有bro，且bro或者bro的孩子为黑色 */
         else {
@@ -467,7 +488,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>:: erase_nod
                 rotate_left(node->parent_);
                 node->~node_type();
                 allocator_.deallocate(node, 1);
-                node = nullptr;
+                node = nil_;
             }
             /* bro节点的相同节点方向(右)有一个红色节点 */
             else if (is_right(bro) && !isNil(bro->right_) && bro->right_->is_black_ == false) {
@@ -477,7 +498,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>:: erase_nod
                 rotate_right(node->parent_);
                 node->~node_type();
                 allocator_.deallocate(node, 1);
-                node = nullptr;
+                node = nil_;
             }
             /* bro无红色孩子节点 */
             else {
@@ -490,7 +511,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>:: erase_nod
                 }
                 node->~node_type();
                 allocator_.deallocate(node, 1);
-                node = nullptr;
+                node = nil_;
                 /* parent为红 */
                 if (par->is_black_ == false) {
                     mstl::swap(par->is_black_, bro->is_black_);
@@ -518,7 +539,12 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>:: erase_nod
     /* node节点只有左孩子(说明node没有被转换过)，此时node必定是黑色，孩子必定是红色（否则不符合到nil节点长度相等定理） */
     else if (!isNil(node->left_)) {
         node->left_->parent_ = node->parent_;
-        node->parent_->left_ = node->left_;
+        if (is_right(node)) {
+            node->parent_->right_ = node->right_;
+        }
+        else{
+            node->parent_->left_ = node->right_;
+        }
         node->left_->is_black_ = true;
         node->~node_type();
         allocator_.deallocate(node, 1);
@@ -526,24 +552,34 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>:: erase_nod
     /* node节点只有右孩子(可能是后继的右孩子，也可能是初始node的右孩子)，此时node必定是黑色，孩子必定是红色 */
     else {
         node->right_->parent_ = node->parent_;
-        node->parent_->right_ = node->right_;
+        if (is_right(node)) {
+            node->parent_->right_ = node->right_;
+        }
+        else{
+            node->parent_->left_ = node->right_;
+        }
         node->right_->is_black_ = true;
         node->~node_type();
         allocator_.deallocate(node, 1);
     }
-    node = nullptr;
+  //  node = nil_;
 }
 
 /* 删除函数 */
 template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
-//template<typename V, typename>
 inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::erase_impl(const typename node_type::value_type& value){
     node_type* node = find_node(value);
-    if (node != nullptr) {
+    if (!isNil(node)) {
         erase_node_impl(node);
         current_size_ --;
     }
 }
-
+template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::erase_impl(node_type* node){
+    if (node != nil_) {
+        erase_node_impl(node);
+        current_size_ --;
+    }
+}
 
 END_NAMESPACE

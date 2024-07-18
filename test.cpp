@@ -131,7 +131,7 @@ int main(){
 #endif
 
 //deque
-#if 0
+#if 1
     {
         mstl::deque<int> a{1,2,3,4,5};
         //cout << a.size() << endl;
@@ -168,7 +168,7 @@ int main(){
 
 
 //红黑树测试，好像测试不了，得先继承才行。。
-#if 1
+#if 0
     {   
         mstl::multiset<int> s;
         s.insert(2);
@@ -212,7 +212,9 @@ int main(){
         for (auto it = s.cbegin(); it != s.cend(); ++it){
             cout << (*it) << " \n"[mstl::next(it) == s.cend()];
         }
-        s.erase(s.begin());
+        it = s.end();
+        --it;
+        cout << (*it) << endl;
     }
 #endif
 
@@ -236,10 +238,13 @@ int main(){
         cout << "mapp lowerbound : " << (tt->first) << " " << tt->second << endl;
         auto rr = mapp.upper_bound(mstl::make_pair(2, -1));
         cout << "mapp upperbound : " << (rr->first) << " " << rr->second << endl;
-        
+
+            it = mapp.begin(); 
+            cout << it->first << " " << it->second << endl;
+            cout << "sz" << mapp.size() << endl;
         for (auto&[x, y]: mapp){
             cout << x << " " << y <<' '; 
-        }it = mapp.begin();
+        }
         cout << endl;
         
         for (auto&[x, y]: mapp){
@@ -247,6 +252,12 @@ int main(){
         }
         cout << endl;
         mapp.erase(it);
+        for (auto&[x, y]: mapp){
+             cout << x << " " << y <<' '; 
+         }
+
+        mapp.clear();
+        cout << mapp.size() << endl;
     }
 #endif
     return 0;
