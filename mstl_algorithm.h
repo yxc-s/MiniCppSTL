@@ -211,16 +211,42 @@ inline void iota(ITER_TYPE begin, const ITER_TYPE& end, typename ITER_TYPE::valu
     }
 }
 
-/* binary search, for vector, array, deque! */
-template <typename ITER_TYPE>
-ITER_TYPE lower_bound(ITER_TYPE begin, ITER_TYPE end);
-
-template <typename ITER_TYPE>
-ITER_TYPE upper_bound(ITER_TYPE begin, ITER_TYPE end);
-
+/* 内省排序：快排，堆排与插排的结合 */
 template <typename ITER_TYPE, typename COMPARE_FUNCTION = mstl::less<typename ITER_TYPE::value_type>>
 void sort(ITER_TYPE begin, ITER_TYPE end, COMPARE_FUNCTION compare_function = COMPARE_FUNCTION()) {
     algorithm_base::quick_sort_impl<ITER_TYPE, typename ITER_TYPE::value_type, COMPARE_FUNCTION>(begin, end, compare_function);
+}
+
+/* 二分查找，要求升序，并且是随机访问容器 */
+/* binary search, for vector, array, deque! */
+/* 返回第一个大于等于x的迭代器 */
+template <typename ITER_TYPE, typename = std::enable_if_t<std::is_base_of_v<random_access_iterator_tag, typename ITER_TYPE::iterator_category>>>
+ITER_TYPE lower_bound(ITER_TYPE begin, ITER_TYPE end, const typename ITER_TYPE::value_type& x){
+    while (begin < end) {
+        auto mid = begin + (end - begin) / 2;
+        if (*mid >= x) {
+            end = mid;
+        }
+        else {
+            begin = mid + 1;
+        }
+    }
+    return begin;
+}
+
+/* 返回第一个大于x的迭代器 */
+template <typename ITER_TYPE, typename = std::enable_if_t<std::is_base_of_v<random_access_iterator_tag, typename ITER_TYPE::iterator_category>>>
+ITER_TYPE upper_bound(ITER_TYPE begin, ITER_TYPE end, const typename ITER_TYPE::value_type& x){
+    while (begin < end) {
+        auto mid = begin + (end - begin) / 2;
+        if (*mid > x) {
+            end = mid;
+        }
+        else {
+            begin = mid + 1;
+        }
+    }
+    return begin;
 }
 
 END_NAMESPACE
