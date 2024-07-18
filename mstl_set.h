@@ -21,7 +21,8 @@ public:
     using difference_type  =  std::ptrdiff_t;
 
     /* 当前类和迭代器类里都根据 IS_MULTI 定义了一个相同的迭代器类型，保证在erase的时候进行类型检查不会出错 */
-    using iter_type = typename std::conditional_t<IS_MULTI, mstl::multiset_iterator, mstl::set_iterator>;
+    using container_type = typename std::conditional_t<IS_MULTI, 
+        mstl::container_type_base::multiset_iterator, mstl::container_type_base::set_iterator>;
 
     set_impl() = default;
     virtual ~set_impl() override = default;
@@ -38,8 +39,8 @@ public:
         using iterator_category  =   mstl::bidirectional_iterator_tag;
 
         /* 该类型用于操作时类型的安全匹配 */
-        using iter_type          =   typename std::conditional_t<IS_MULTI, 
-            mstl::multiset_iterator, mstl::set_iterator>;
+        using container_type          =   typename std::conditional_t<IS_MULTI, 
+            mstl::container_type_base::multiset_iterator, mstl::container_type_base::set_iterator>;
 
         using this_type = iterator_impl<value_type, data_reference, IS_REVERSE>;
         
@@ -182,7 +183,7 @@ public:
     }
 
     /* 这里第二个模板参数进行了类型检查，确保迭代器不会混用 */
-    template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::iter_type, iter_type>>>
+    template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>>
     void erase(ITER_TYPE iter) noexcept { 
         if (iter == end()) {
             return;

@@ -27,6 +27,8 @@ public:
     using const_reference  =  const T&;
     using size_type        =  mstl::size_t;
 
+    using container_type = mstl::container_type_base::_vector_;
+
     /* 各种构造和析构函数 */
     explicit vector(size_type size = 0);
     vector(size_type size, const value_type& value);
@@ -34,7 +36,7 @@ public:
     vector(vector<value_type>&& other) noexcept;
     vector(const std::initializer_list<value_type>& initializer) noexcept;
     template<typename InputIterator, typename = typename std::enable_if<
-        std::is_same_v<typename InputIterator::value_type, value_type>>::type>
+        std::is_same_v<typename InputIterator::container_type, container_type>>::type>
     vector(const InputIterator& begin, const InputIterator& end);
     ~vector();
 
@@ -61,7 +63,7 @@ public:
     const_reference back()                    const { return data_ptr_[current_size_ - 1]; }
     size_type size()                            const noexcept { return current_size_; }
     size_type capacity()                        const noexcept { return capacity_; }
-    bool empty()                                const noexcept { return static_cast<bool>(current_size_ > 0); }
+    bool empty()                                const noexcept { return static_cast<bool>(current_size_ == 0); }
     void clear()                                      noexcept { call_all_destructors(); }
 
     /* Iterator */
@@ -74,8 +76,9 @@ public:
         using difference_type    =   std::ptrdiff_t;
         using iterator_category  =   mstl::random_access_iterator_tag;
 
-
         using this_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
+        using container_type = mstl::container_type_base::_vector_;
+
         
         iterator_impl(pointer ptr) : ptr_(ptr) {}
 

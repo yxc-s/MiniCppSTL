@@ -52,14 +52,17 @@ NAMESPACE_MSTL
 
 /******************************迭代器类型定义******************************/
 
-
-struct vector_iterator{};
-struct array_iterator{};
-struct deque_iterator{};
+//TODO:要不要加个命名空间？
+namespace container_type_base{
+struct _vector_{};
+struct _array_{};
+struct _deque_{};
 struct set_iterator{};
 struct multiset_iterator{};
 struct map_iterator{};
 struct multimap_iterator{};
+}
+
 
 
 /* 迭代器类型定义 Iterator type definition */

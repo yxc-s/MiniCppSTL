@@ -9,12 +9,10 @@ Some featrues need C++17 like : if constexpr...
 If this repository is helpful for your studies or work, please consider giving it a star to show your support.
 
 
-TODO: 
+TODO: deque和vector的erase？还有insert？
 
 DataStructure:
-  map和set的(erase)
   unordered_map, unordered_set,
-  stack,
   queue,
   priority_queue,
   
@@ -24,7 +22,6 @@ iterator
   
 
 Algorithms:
-  erase,
   sort(已实现内省排序，待性能测试）,
   unique,
   lower_bound,

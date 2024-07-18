@@ -79,9 +79,9 @@ public:
         using reference          =   ReferenceType;
         using difference_type    =   std::ptrdiff_t;
         using iterator_category  =   mstl::random_access_iterator_tag;
-
         
         using this_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
+        
         
         iterator_impl(pointer ptr) : ptr_(ptr) {}
 

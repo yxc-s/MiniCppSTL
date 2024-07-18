@@ -8,7 +8,7 @@
 #include <bits/stdc++.h>
 #include "mstl_set.h"
 #include "mstl_map.h"
-
+#include "mstl_stack.h"
 
 using namespace std;
 int main(){
@@ -131,7 +131,7 @@ int main(){
 #endif
 
 //deque
-#if 1
+#if 0
     {
         mstl::deque<int> a{1,2,3,4,5};
         //cout << a.size() << endl;
@@ -260,5 +260,21 @@ int main(){
         cout << mapp.size() << endl;
     }
 #endif
+
+
+//stack
+
+#if 1
+    {
+        mstl::stack<int> a{2,3,4,5,61};
+        cout << a.size() << endl;
+        while (!a.empty()){
+            cout<< a.top() << ' ';
+            a.pop();
+        }
+        cout << endl;
+    }
+#endif
+
     return 0;
 }
