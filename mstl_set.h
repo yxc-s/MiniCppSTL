@@ -32,6 +32,7 @@ public:
     class iterator_impl : public iterator_base<iterator_impl<ValueType, ReferenceType, IS_REVERSE>, ValueType> {
         friend class set_impl<T, COMPARE_FUNCTION, Allocator, IS_MULTI>; 
         using set_base_type = set_impl<T, COMPARE_FUNCTION, Allocator, IS_MULTI>;
+        using this_iter_type = iterator_impl<value_type, data_reference, IS_REVERSE>;
     public:
         using value_type         =   ValueType;
         using pointer            =   value_type*;
@@ -41,8 +42,6 @@ public:
         /* 该类型用于操作时类型的安全匹配 */
         using container_type          =   typename std::conditional_t<IS_MULTI, 
             mstl::container_type_base::multiset_iterator, mstl::container_type_base::set_iterator>;
-
-        using this_type = iterator_impl<value_type, data_reference, IS_REVERSE>;
         
         iterator_impl(pointer ptr, set_base_type* set) : ptr_(ptr), parent_set_(set) {}
         ~iterator_impl() override {};
@@ -91,9 +90,9 @@ public:
         }
 
         /* 迭代器比较运算符 */
-        bool operator==(const this_type& other) const { return ptr_ == other.ptr_; }
-        bool operator!=(const this_type& other) const { return !(*this == other); }
-        this_type& operator = (const this_type& other) { 
+        bool operator==(const this_iter_type& other) const { return ptr_ == other.ptr_; }
+        bool operator!=(const this_iter_type& other) const { return !(*this == other); }
+        this_iter_type& operator = (const this_iter_type& other) { 
             ptr_ = other.ptr_; 
             parent_set_ = other.parent_set_; 
             return *this;

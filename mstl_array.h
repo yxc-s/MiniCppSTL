@@ -73,14 +73,13 @@ public:
      /* Iterator */
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
+        using this_iter_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
     public:
         using value_type         =   ValueType;
         using pointer            =   PointerType;
         using reference          =   ReferenceType;
         using difference_type    =   std::ptrdiff_t;
         using iterator_category  =   mstl::random_access_iterator_tag;
-        
-        using this_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
         
         
         iterator_impl(pointer ptr) : ptr_(ptr) {}
@@ -144,13 +143,19 @@ public:
             }
         }
 
-        difference_type operator-(const this_type& other) const { return ptr_ - other.ptr_; }
-        bool operator==(const this_type& other) const { return ptr_ == other.ptr_; }
-        bool operator!=(const this_type& other) const { return !(*this == other); }
-        bool operator <(const this_type& other) const { return ptr_ < other.ptr_; }
-        bool operator <=(const this_type& other) const { return ptr_ <= other.ptr_; }
-        bool operator >(const this_type& other) const { return !(*this <= other); }
-        bool operator >=(const this_type& other) const { return !(*this < other); }
+        difference_type operator-(const this_iter_type& other) const { return ptr_ - other.ptr_; }
+        bool operator==(const this_iter_type& other) const { return ptr_ == other.ptr_; }
+        bool operator!=(const this_iter_type& other) const { return !(*this == other); }
+        bool operator <(const this_iter_type& other) const { return ptr_ < other.ptr_; }
+        bool operator <=(const this_iter_type& other) const { return ptr_ <= other.ptr_; }
+        bool operator >(const this_iter_type& other) const { return !(*this <= other); }
+        bool operator >=(const this_iter_type& other) const { return !(*this < other); }
+        this_iter_type& operator =(const this_iter_type& other) {
+            if (this != &other) {
+                ptr_ = other.ptr_;
+            }
+            return *this;
+        }
 
     private:
         pointer ptr_;

@@ -131,7 +131,7 @@ int main(){
 #endif
 
 //deque
-#if 0
+#if 1
     {
         mstl::deque<int> a{1,2,3,4,5};
         //cout << a.size() << endl;
@@ -163,6 +163,20 @@ int main(){
             cout << x << " " << y << endl;
         }
         a == b;
+        for (int i = 10; i >= 1; --i){
+            d.emplace_back(i, i - 2);
+        }
+        cout << "--------------------" << endl;
+        mstl::sort(d.begin(), d.end());
+        for (auto&[x, y] : d){
+            cout << x << ' ' << y << "   ";
+        }
+        cout << endl;
+        auto it = mstl::upper_bound(d.begin(), d.end(), mstl::pair{3, 1});
+        while (it != d.end()){
+            cout << (it->first) << " " << (it->second) << "   ";
+            ++it;
+        }
     }
 #endif
 
@@ -264,7 +278,7 @@ int main(){
 
 //stack
 
-#if 1
+#if 0
     {
         mstl::stack<int> a{2,3,4,5,61};
         cout << a.size() << endl;

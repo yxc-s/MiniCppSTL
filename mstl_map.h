@@ -32,6 +32,7 @@ public:
     class iterator_impl : public iterator_base<iterator_impl<ValueType, ReferenceType, IS_REVERSE>, ValueType> {
         friend class map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>; 
         using map_base_type = map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>;
+        using this_iter_type = iterator_impl<value_type, data_reference, IS_REVERSE>;
     public:
         using value_type         =   ValueType;
         using pointer            =   value_type*;
@@ -42,8 +43,6 @@ public:
         /* 该类型用于操作时类型的安全匹配 */
         using container_type          =   typename std::conditional_t<IS_MULTI, 
             mstl::container_type_base::multimap_iterator, mstl::container_type_base::map_iterator>;
-
-        using this_type = iterator_impl<value_type, data_reference, IS_REVERSE>;
         
         iterator_impl(pointer ptr, map_base_type* map) : ptr_(ptr), parent_map_(map) {}
         ~iterator_impl() override {};
@@ -93,9 +92,9 @@ public:
         }
 
         /* 迭代器比较运算符 */
-        bool operator==(const this_type& other) const { return ptr_ == other.ptr_; }
-        bool operator!=(const this_type& other) const { return !(*this == other); }
-        this_type& operator = (const this_type& other) { 
+        bool operator==(const this_iter_type& other) const { return ptr_ == other.ptr_; }
+        bool operator!=(const this_iter_type& other) const { return !(*this == other); }
+        this_iter_type& operator = (const this_iter_type& other) { 
             ptr_ = other.ptr_; 
             parent_map_ = other.parent_map_; 
             return *this;

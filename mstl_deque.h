@@ -38,8 +38,7 @@ public:
     deque(const this_deque_type& other);
     deque(this_deque_type&& other);
     deque(const std::initializer_list<value_type>& initializer) noexcept;
-    template<typename InputIterator, typename = typename std::enable_if<
-        std::is_same_v<typename InputIterator::container_type, container_type>>::type>
+    template<typename InputIterator>
     deque(const InputIterator& begin, const InputIterator& end);
     ~deque();
 
@@ -80,6 +79,7 @@ public:
     /* 这里的设计引用了一个相关deque父类，在返回内存数据时，要先通过父类计算出下标对应的指针 */
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
+        using this_iter_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;    
     public:
         using value_type         =   ValueType;
         using pointer            =   PointerType;
@@ -87,14 +87,12 @@ public:
         using difference_type    =   std::ptrdiff_t;
         using iterator_category  =   mstl::random_access_iterator_tag;
 
-
-        using this_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
         using container_type = mstl::container_type_base::_deque_;
         
-        iterator_impl(size_t index, const mstl::deque<T>& deque) : index_(index), deque_(deque) {}
+        iterator_impl(size_t index, mstl::deque<T>* deque) : index_(index), deque_(deque) {}
 
-        reference operator*() const { return *deque_.get_position_pointer(index_); }
-        pointer operator->()  { return *deque_.get_position_pointer(index_); }
+        reference operator*() const { return *(deque_->get_position_pointer(index_)); }
+        pointer operator->()  { return deque_->get_position_pointer(index_); }
 
         iterator_impl& operator++() override { 
             if constexpr (IS_REVERSE){
@@ -153,17 +151,24 @@ public:
             }
         }
 
-        difference_type operator-(const this_type& other) const { return index_ - other.index_; }
-        bool operator==(const this_type& other) const { return index_ == other.index_; }
-        bool operator!=(const this_type& other) const { return !(*this == other); }
-        bool operator <(const this_type& other) const{ return index_ < other.index_; }
-        bool operator <=(const this_type& other) const{ return index_ <= other.index_; }
-        bool operator >(const this_type& other) const{ return !(*this <= other); }
-        bool operator >=(const this_type& other) const{ return !(*this < other); }
+        difference_type operator-(const this_iter_type& other) const { return index_ - other.index_; }
+        bool operator==(const this_iter_type& other) const { return index_ == other.index_; }
+        bool operator!=(const this_iter_type& other) const { return !(*this == other); }
+        bool operator <(const this_iter_type& other) const{ return index_ < other.index_; }
+        bool operator <=(const this_iter_type& other) const{ return index_ <= other.index_; }
+        bool operator >(const this_iter_type& other) const{ return !(*this <= other); }
+        bool operator >=(const this_iter_type& other) const{ return !(*this < other); }
+        this_iter_type& operator =(const this_iter_type& other) {
+            if (this != &other) {
+                index_ = other.index_;
+                deque_ = other.deque_;
+            }
+            return *this;
+        }
 
     private:
         size_t index_;
-        const mstl::deque<T>& deque_;
+        mstl::deque<T>* deque_;
     };
     
     /* 四种迭代器类型 */
@@ -179,16 +184,16 @@ public:
     friend class iterator_impl<const value_type, const_pointer, const_reference, true>;
 
     /* 正向迭代器相关函数 */
-    iterator begin() { return iterator(front_index_, *this); }
-    iterator end()   { return iterator(back_index_, *this); }
-    const_iterator cbegin() { return const_iterator(front_index_, *this); } 
-    const_iterator cend() { return const_iterator(back_index_, *this); }
+    iterator begin() { return iterator(front_index_, this); }
+    iterator end()   { return iterator(back_index_, this); }
+    const_iterator cbegin() { return const_iterator(front_index_, this); } 
+    const_iterator cend() { return const_iterator(back_index_, this); }
 
     /* 逆向迭代器相关函数 */
-    reverse_iterator rbegin() { return reverse_iterator(back_index_ - 1, *this); }
-    reverse_iterator rend() { return reverse_iterator(front_index_ - 1, *this); }
-    const_reverse_iterator crbegin() { return const_reverse_iterator(back_index_ - 1, *this); }
-    const_reverse_iterator crend() { return const_reverse_iterator(front_index_ - 1, *this); }
+    reverse_iterator rbegin() { return reverse_iterator(back_index_ - 1, this); }
+    reverse_iterator rend() { return reverse_iterator(front_index_ - 1, this); }
+    const_reverse_iterator crbegin() { return const_reverse_iterator(back_index_ - 1, this); }
+    const_reverse_iterator crend() { return const_reverse_iterator(front_index_ - 1, this); }
     
 
 private:
@@ -204,6 +209,12 @@ private:
         size_t block_id = index / BLOCK_SIZE;
         return block_ptr_[block_id] + (index % BLOCK_SIZE);
     }
+
+    const_pointer get_position_pointer (size_t index) const{ 
+        size_t block_id = index / BLOCK_SIZE;
+        return block_ptr_[block_id] + (index % BLOCK_SIZE);
+    }
+
 
     /* 在deque前面增加内存块 */
     void add_front_block(){
@@ -332,7 +343,7 @@ inline mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::deque(const std::in
 
 /* 迭代器构造 */
 template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
-template<typename InputIterator, typename >
+template<typename InputIterator>
 mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::deque(const InputIterator& begin, const InputIterator& end):
     front_index_(INITIAL_INDEX),
     back_index_(front_index_ + (end - begin)),

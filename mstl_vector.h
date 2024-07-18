@@ -35,8 +35,8 @@ public:
     vector(const vector<value_type>& other);
     vector(vector<value_type>&& other) noexcept;
     vector(const std::initializer_list<value_type>& initializer) noexcept;
-    template<typename InputIterator, typename = typename std::enable_if<
-        std::is_same_v<typename InputIterator::container_type, container_type>>::type>
+    /* 这里先不限定只接受vector，先限定只接受随机访问容器，不然没法给其他容器排序 */
+    template<typename InputIterator>
     vector(const InputIterator& begin, const InputIterator& end);
     ~vector();
 
@@ -69,6 +69,7 @@ public:
     /* Iterator */
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
+        using this_iter_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
     public:
         using value_type         =   ValueType;
         using pointer            =   PointerType;
@@ -76,7 +77,6 @@ public:
         using difference_type    =   std::ptrdiff_t;
         using iterator_category  =   mstl::random_access_iterator_tag;
 
-        using this_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
         using container_type = mstl::container_type_base::_vector_;
 
         
@@ -142,13 +142,19 @@ public:
             }
         }
 
-        difference_type operator-(const this_type& other) const { return ptr_ - other.ptr_; }
-        bool operator==(const this_type& other) const { return ptr_ == other.ptr_; }
-        bool operator!=(const this_type& other) const { return !(*this == other);}
-        bool operator <(const this_type& other) const { return ptr_ < other.ptr_; }
-        bool operator <=(const this_type& other) const { return ptr_ <= other.ptr_; }
-        bool operator >(const this_type& other) const { return !(*this <= other); }
-        bool operator >=(const this_type& other) const { return !(*this < other); }
+        difference_type operator-(const this_iter_type& other) const { return ptr_ - other.ptr_; }
+        bool operator==(const this_iter_type& other) const { return ptr_ == other.ptr_; }
+        bool operator!=(const this_iter_type& other) const { return !(*this == other);}
+        bool operator <(const this_iter_type& other) const { return ptr_ < other.ptr_; }
+        bool operator <=(const this_iter_type& other) const { return ptr_ <= other.ptr_; }
+        bool operator >(const this_iter_type& other) const { return !(*this <= other); }
+        bool operator >=(const this_iter_type& other) const { return !(*this < other); }
+        this_iter_type& operator =(const this_iter_type& other) {
+            if (this != &other) {
+                ptr_ = other.ptr_;
+            }
+            return *this;
+        }
 
     private:
         pointer ptr_;
@@ -270,7 +276,7 @@ inline vector<T, Allocator>::vector(const std::initializer_list<value_type>& ini
         
 /* 迭代器构造 */
 template<typename T, typename Allocator>
-template<typename InputIterator, typename >
+template<typename InputIterator>
 inline vector<T, Allocator>::vector(const InputIterator& begin, const InputIterator& end): 
     data_ptr_(allocator_.allocate(end - begin + 1)),
     current_size_(end - begin + 1),
