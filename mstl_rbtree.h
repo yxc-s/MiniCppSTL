@@ -94,6 +94,7 @@ public:
 /* 红黑树实现，并编写了关联式容器的接口 */
 template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
 class RedBlackTree{
+    using this_tree_type = RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>;
 public:
     using key_type                 =    T;
     using value_type               =    U;
@@ -107,6 +108,33 @@ public:
         new(nil_)  node_type(nullptr);
         root_ = nil_; /* 一定不能在初始化构造列表里直接构造，不然root_ == nil_为false*/
     }
+
+    /* 拷贝构造 */
+    RedBlackTree(const this_tree_type& other) :
+        nil_(allocator_.allocate(1)), 
+        current_size_(other.current_size_)
+    { 
+        new(nil_)  node_type(nullptr);
+        root_ = nil_; 
+        if (!other.isNil(other.root_)) {
+            root_ = allocator_.allocate(1);
+            new(root_) node_type(other.root_->data_);
+            build(other, root_, other.root_);
+        }
+    }
+
+    /* 移动构造函数 */
+    RedBlackTree(this_tree_type&& other):
+        nil_(other.nil_), 
+        current_size_(other.current_size_),
+        root_(other.root_)
+    {
+        other.nil_ = other.allocator_.allocate(1);
+        new(other.nil_) node_type(nullptr);
+        other.root_ = other.nil_;
+        other.current_size_ = 0;
+    }
+
     virtual ~RedBlackTree(){
         destory(root_);
         current_size_ = 0;
@@ -178,6 +206,29 @@ private:
 protected:
     /* 哨兵! */
     node_type*              nil_;
+
+    void build(const this_tree_type& other, node_type* cur_node, node_type* other_node) {
+        if (!other.isNil(other_node->left_)) {
+            node_type* temp = allocator_.allocate(1);
+            new(temp) node_type(other_node->left_->data_);
+            cur_node->left_ = temp;
+            temp->parent_ = cur_node;
+            build(other, temp, other_node->left_);
+        }
+        else {
+            cur_node->left_ = nil_;
+        }
+        if (!other.isNil(other_node->right_)) {
+            node_type* temp = allocator_.allocate(1);
+            new(temp) node_type(other_node->right_->data_);
+            cur_node->right_ = temp;
+            temp->parent_ = cur_node;
+            build(other, temp, other_node->right_);
+        }
+        else {
+            cur_node->right_ = nil_;
+        }
+    }
     
     /* 一些小函数 */
     bool is_left(node_type* x) const noexcept { return (x->parent_)->left_ == x; }

@@ -12,6 +12,7 @@ class map_impl: public mstl::RedBlackTree<T, U, COMPARE_FUNCTION, Allocator, tru
     using tree_base = mstl::RedBlackTree<T, U, COMPARE_FUNCTION, Allocator, true, IS_MULTI>;
     using node_type = typename tree_base::node_type;
     using node_value_type = typename node_type::value_type;
+    using this_map_type = map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>;
 public:
     using value_type = typename tree_base::node_type;
     using pointer = value_type*;
@@ -24,15 +25,72 @@ public:
     using container_type = typename std::conditional_t<IS_MULTI, 
         mstl::container_type_base::multimap_iterator, mstl::container_type_base::map_iterator>;
 
+    /* 构造和析构函数 */
     map_impl() = default;
+    map_impl(const this_map_type& other) : tree_base(other) {}
+    map_impl(this_map_type&& other) : tree_base(mstl::move(other)) {}
+    map_impl(const std::initializer_list<value_type>& initializer) {
+        for (const auto& value : initializer) {
+            insert(value);      //TODO:批量插入策略？？
+        }
+    }
+    template<typename InputIterator, typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename InputIterator::iterator_category>>>
+    map_impl(InputIterator begin, InputIterator end) {
+        while (begin != end) {
+            insert(*begin);
+            begin ++;
+        }
+    }
     virtual ~map_impl() override = default;
+
+    /* =拷贝 */
+    this_map_type& operator =(const this_map_type& other) {
+        tree_base::destory(tree_base::root_);
+        tree_base::current_size_ = other.current_size_;
+        tree_base::root_ = tree_base::nil_;
+        if (!other.isNil(other.root_)) {
+            tree_base::root_ = tree_base::allocator_.allocate(1);
+            new(tree_base::root_) node_type(other.root_->data_);
+            tree_base::build(other, tree_base::root_, other.root_);
+        }
+    }
+    /* =移动语义*/
+    this_map_type& operator =(this_map_type&& other) {
+        tree_base::destory(tree_base::root_);
+        tree_base::nil_->tree_base::~node_type();
+        tree_base::allocator_.deallocate(tree_base::nil_);
+        tree_base::nil_ = other.nil_;
+        tree_base::root_  = other.root_;
+        tree_base::current_size_ = other.current_size_;
+        other.nil_ = other.allocator_.allocate(1);
+        new(other.nil_) node_type(nullptr); //TODO: node_type前面不加作用域吗
+        other.root_ = other.nil_;
+        other.current_size_ = 0;
+    }
+
+    /* == 运算符重载 */
+    friend bool operator ==(const this_map_type& lhs, const this_map_type& rhs) {
+        if (lhs.current_size_ != rhs.current_size_) {
+            return false;
+        }
+        for (auto it = lhs.cbegin(), rt = rhs.cbegin(); it != lhs.cend(); ++it, ++rt) {
+            if ((*it) != (*rt)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    friend bool operator != (const this_map_type& lhs, const this_map_type& rhs) {
+        return !(lhs == rhs);
+    }
+
 
     /* Iterator : 注意！这楼里的value_type是红黑树的node类型，pointer也一样，但是，reference是node里面的data类型!! 并且没有->重载! */
     template<typename ValueType, typename ReferenceType, const bool IS_REVERSE>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, ReferenceType, IS_REVERSE>, ValueType> {
         friend class map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>; 
         using map_base_type = map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>;
-        using this_iter_type = iterator_impl<value_type, data_reference, IS_REVERSE>;
+        using this_iter_type = iterator_impl<ValueType, ReferenceType, IS_REVERSE>;
     public:
         using value_type         =   ValueType;
         using pointer            =   value_type*;
