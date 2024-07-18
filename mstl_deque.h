@@ -13,11 +13,11 @@ TODO:
 */
 NAMESPACE_MSTL
 
-template<typename T, typename Allocator = mstl::Allocator<T>>
+template<typename T, typename Allocator = mstl::Allocator<T>, mstl::size_t BLOCK_SIZE = 512, mstl::size_t INITIAL_INDEX = BLOCK_SIZE / 2>
 class deque{
-    static constexpr const size_t BLOCK_SIZE       =   512;
-    static constexpr const size_t INITIAL_INDEX    =   BLOCK_SIZE / 2; /* 256 */
-    static constexpr const size_t INITIAL_CAPACITY =   BLOCK_SIZE - INITIAL_INDEX + 1; /* 256 : 下标256 ~ 511*/
+    static constexpr const size_t INITIAL_CAPACITY =   BLOCK_SIZE - INITIAL_INDEX; /* 256 : 下标256 ~ 511*/
+    /* 使用这个东西的好处就是，确保另一个deque的块大小，起始坐标大小都是相同的 */
+    using this_deque_type = mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>;
 public:
     /* STL format */
     using value_type       =  T;
@@ -27,16 +27,19 @@ public:
     using const_reference  =  const T&;
     using size_type        =  mstl::size_t;
     
+    /* 指向内存块的allocator类型 */
     using block_allocator_type = typename Allocator::template rebind<pointer>::other;
+
+    using container_type = mstl::container_type_base::_deque_;
 
     /* 各种构造和析构函数 */
     explicit deque(size_type size = 0);
     deque(size_type size, const value_type& value);
-    deque(const deque<value_type>& other);
-    deque(deque<value_type>&& other);
+    deque(const this_deque_type& other);
+    deque(this_deque_type&& other);
     deque(const std::initializer_list<value_type>& initializer) noexcept;
     template<typename InputIterator, typename = typename std::enable_if<
-        std::is_same_v<typename InputIterator::value_type, value_type>>::type>
+        std::is_same_v<typename InputIterator::container_type, container_type>>::type>
     deque(const InputIterator& begin, const InputIterator& end);
     ~deque();
 
@@ -50,8 +53,10 @@ public:
     void pop_front();
     template<typename... Args> void emplace_back(Args&&... args);
     void reserve(size_type size);
-    deque<value_type, Allocator>& operator =(const deque<value_type>& other);
-    deque<value_type, Allocator>& operator =(deque<value_type>&& other) noexcept;
+
+    /* 一些运算符重载 */
+    mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>& operator =(const this_deque_type& other);
+    mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>& operator =(this_deque_type&& other) noexcept;
     template<typename U>
     friend bool operator ==(const mstl::deque<U>& lhs, const mstl::deque<U>& rhs);
     template<typename U>
@@ -68,7 +73,7 @@ public:
     const_reference back()                      const { return *(get_position_pointer(back_index_ - 1)); }
     size_type size()                            const noexcept { return back_index_ - front_index_; }
     size_type capacity()                        const noexcept { return BLOCK_SIZE * num_blocks_; }
-    bool empty()                                const noexcept { return static_cast<bool> (back_index_ - front_index_);}
+    bool empty()                                const noexcept { return static_cast<bool> (back_index_ - front_index_ == 0);}
     void clear()                                      noexcept { call_all_destructors(); }
 
     /* Iterator */
@@ -84,6 +89,7 @@ public:
 
 
         using this_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;
+        using container_type = mstl::container_type_base::_deque_;
         
         iterator_impl(size_t index, const mstl::deque<T>& deque) : index_(index), deque_(deque) {}
 
@@ -194,7 +200,7 @@ private:
     pointer*               block_ptr_;
     
     /* 根据index计算对应的指针 */
-    constexpr pointer get_position_pointer (size_t index) const { 
+    pointer get_position_pointer (size_t index) { 
         size_t block_id = index / BLOCK_SIZE;
         return block_ptr_[block_id] + (index % BLOCK_SIZE);
     }
@@ -246,8 +252,8 @@ private:
 };
 
 /* 默认构造函数，按需构造策略 */
-template<typename T, typename Allocator>
-inline deque<T, Allocator>::deque(size_type size) : 
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::deque(size_type size) : 
     front_index_(INITIAL_INDEX),
     back_index_(front_index_ + size),
     num_blocks_((INITIAL_CAPACITY + size + BLOCK_SIZE - 1) / BLOCK_SIZE),
@@ -262,8 +268,8 @@ inline deque<T, Allocator>::deque(size_type size) :
 }
 
 /* 按空间大小与初值构造 */
-template<typename T, typename Allocator>
-inline deque<T, Allocator>::deque(size_type size, const value_type& value) : 
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::deque(size_type size, const value_type& value) : 
     front_index_(INITIAL_INDEX),
     back_index_(front_index_ + size),
     num_blocks_((INITIAL_CAPACITY + size + BLOCK_SIZE - 1) / BLOCK_SIZE),
@@ -278,8 +284,8 @@ inline deque<T, Allocator>::deque(size_type size, const value_type& value) :
 }
 
 /* 拷贝构造 */
-template<typename T, typename Allocator>
-inline deque<T, Allocator>::deque(const deque<value_type>& other):
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::deque(const this_deque_type& other):
     front_index_(other.front_index_),
     back_index_(other.back_index_),
     num_blocks_(other.num_blocks_),
@@ -294,8 +300,8 @@ inline deque<T, Allocator>::deque(const deque<value_type>& other):
 }
 
 /* 移动构造 */
-template<typename T, typename Allocator>
-inline deque<T, Allocator>::deque(deque<value_type>&& other):
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::deque(this_deque_type&& other):
     front_index_(other.front_index_),
     back_index_(other.back_index_),
     num_blocks_(other.num_blocks_),
@@ -307,8 +313,8 @@ inline deque<T, Allocator>::deque(deque<value_type>&& other):
 }
 
 /* 初始化列表构造 */
-template<typename T, typename Allocator>
-inline deque<T, Allocator>::deque(const std::initializer_list<value_type>& initializer) noexcept:
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::deque(const std::initializer_list<value_type>& initializer) noexcept:
     front_index_(INITIAL_INDEX),
     back_index_(front_index_ + initializer.size()),
     num_blocks_((INITIAL_CAPACITY + initializer.size() + BLOCK_SIZE - 1) / BLOCK_SIZE),
@@ -325,9 +331,9 @@ inline deque<T, Allocator>::deque(const std::initializer_list<value_type>& initi
 }
 
 /* 迭代器构造 */
-template<typename T, typename Allocator>
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
 template<typename InputIterator, typename >
-deque<T, Allocator>::deque(const InputIterator& begin, const InputIterator& end):
+mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::deque(const InputIterator& begin, const InputIterator& end):
     front_index_(INITIAL_INDEX),
     back_index_(front_index_ + (end - begin)),
     num_blocks_((INITIAL_CAPACITY + (end - begin) + BLOCK_SIZE - 1) / BLOCK_SIZE),
@@ -342,16 +348,16 @@ deque<T, Allocator>::deque(const InputIterator& begin, const InputIterator& end)
 }
 
 /* 析构函数 */
-template<typename T, typename Allocator>
-inline deque<T, Allocator>::~deque(){
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::~deque(){
     if (block_ptr_ != nullptr){
         release_memory();
     }
 }
 
 /* 向首部添加左值元素 */
-template<typename T, typename Allocator>
-inline void deque<T, Allocator>::push_front(const value_type& value){
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline void mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::push_front(const value_type& value){
     if (!front_index_){
         add_front_block();
     }
@@ -360,8 +366,8 @@ inline void deque<T, Allocator>::push_front(const value_type& value){
 }
 
 /* 向首部添加右值元素 */
-template<typename T, typename Allocator>
-inline void deque<T, Allocator>::push_front(value_type&& value){
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline void mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::push_front(value_type&& value){
     if (!front_index_){
         add_front_block();
     }
@@ -370,9 +376,9 @@ inline void deque<T, Allocator>::push_front(value_type&& value){
 }
 
 /* 在首部根据参数直接构造元素 */
-template<typename T, typename Allocator>
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
 template<typename... Args>
-inline void deque<T, Allocator>::emplace_front(Args&&... args){
+inline void mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::emplace_front(Args&&... args){
     if (!front_index_){
         add_front_block();
     }
@@ -381,8 +387,8 @@ inline void deque<T, Allocator>::emplace_front(Args&&... args){
 }
 
 /* 向末尾添加左值元素，注意back_index_是最后一个元素下标的下一位  */
-template<typename T, typename Allocator>
-inline void deque<T, Allocator>::push_back(const value_type& value){
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline void mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::push_back(const value_type& value){
     if (back_index_ % BLOCK_SIZE == 0 && back_index_ / BLOCK_SIZE == num_blocks_){
         add_back_block();
     }
@@ -391,8 +397,8 @@ inline void deque<T, Allocator>::push_back(const value_type& value){
 }
 
 /* 向末尾添加右值元素*/
-template<typename T, typename Allocator>
-inline void deque<T, Allocator>::push_back(value_type&& value){
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline void mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::push_back(value_type&& value){
     if (back_index_ % BLOCK_SIZE == 0 && back_index_ / BLOCK_SIZE == num_blocks_){
         add_back_block();
     }
@@ -401,9 +407,9 @@ inline void deque<T, Allocator>::push_back(value_type&& value){
 }
 
 /* 在末尾根据参数直接构造元素 */
-template<typename T, typename Allocator>
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
 template<typename... Args>
-inline void deque<T, Allocator>::emplace_back(Args&&... args){
+inline void mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::emplace_back(Args&&... args){
     if ((back_index_ % BLOCK_SIZE == 0 && back_index_ / BLOCK_SIZE == num_blocks_)){
         add_back_block();
     }
@@ -412,22 +418,22 @@ inline void deque<T, Allocator>::emplace_back(Args&&... args){
 }
 
 /* 删除最后一个元素 */
-template<typename T, typename Allocator>
-inline void deque<T, Allocator>::pop_back(){
-    *(get_position_pointer(back_index_ - 1)).~T();
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline void mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::pop_back(){
+    (get_position_pointer(back_index_ - 1))->~T();
     back_index_ --;
 }
 
 /* 删除第一个元素 */
-template<typename T, typename Allocator>
-inline void deque<T, Allocator>::pop_front(){
-    *(get_position_pointer(front_index_)).~T();
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline void mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::pop_front(){
+    (get_position_pointer(front_index_))->~T();
     front_index_ ++;
 }
 
 /* 预分配指定大小内存 */
-template<typename T, typename Allocator>
-inline void deque<T, Allocator>::reserve(size_type size){
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline void mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::reserve(size_type size){
     if (BLOCK_SIZE * num_blocks_ < size){
         size_t new_block_size = (INITIAL_CAPACITY + size + BLOCK_SIZE - 1) / BLOCK_SIZE;
         pointer* new_block_pointer = block_allocator_.allocate(new_block_size);
@@ -445,8 +451,8 @@ inline void deque<T, Allocator>::reserve(size_type size){
 }
 
 /* 拷贝构造=重载 */
-template<typename T, typename Allocator>
-inline deque<T, Allocator>& deque<T, Allocator>:: operator =(const deque<value_type>& other){
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>& deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::operator =(const this_deque_type& other){
     if (this != &other){
         if (block_ptr_){
             release_memory();
@@ -463,8 +469,8 @@ inline deque<T, Allocator>& deque<T, Allocator>:: operator =(const deque<value_t
 }
 
 /* 移动构造=重载 */
-template<typename T, typename Allocator>
-inline deque<T, Allocator>& deque<T, Allocator>::operator =(deque<value_type>&& other) noexcept{
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+inline deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>& deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::operator =(this_deque_type&& other) noexcept{
     if (this != &other){
         if (block_ptr_){
             release_memory();
