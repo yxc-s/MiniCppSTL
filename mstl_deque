@@ -79,7 +79,7 @@ public:
     /* 这里的设计引用了一个相关deque父类，在返回内存数据时，要先通过父类计算出下标对应的指针 */
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
-        using this_iter_type = iterator_impl<value_type, pointer, reference, IS_REVERSE>;    
+        using this_iter_type = iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>;    
     public:
         using value_type         =   ValueType;
         using pointer            =   PointerType;
@@ -152,8 +152,8 @@ public:
         }
 
         difference_type operator-(const this_iter_type& other) const { return index_ - other.index_; }
-        bool operator==(const this_iter_type& other) const { return index_ == other.index_; }
-        bool operator!=(const this_iter_type& other) const { return !(*this == other); }
+        virtual bool operator==(const this_iter_type& other)const override { return index_ == other.index_; }
+        virtual bool operator!=(const this_iter_type& other)const override{ return !(*this == other); }
         bool operator <(const this_iter_type& other) const{ return index_ < other.index_; }
         bool operator <=(const this_iter_type& other) const{ return index_ <= other.index_; }
         bool operator >(const this_iter_type& other) const{ return !(*this <= other); }
@@ -433,6 +433,20 @@ template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t I
 inline void mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::pop_back(){
     (get_position_pointer(back_index_ - 1))->~T();
     back_index_ --;
+    /* 加逻辑，为了避免无限的push_front再pop_back，导致前面内存块一直增加，后面内存块无用 */
+    size_type cur_block_id = back_index_ / BLOCK_SIZE;
+    if (num_blocks_ - cur_block_id - 1 >= 2) {
+        pointer* new_block_pointer = block_allocator_.allocate(cur_block_id + 1);
+        for (size_type i = 0; i <= cur_block_id; ++i) {
+            new_block_pointer[i] = block_ptr_[i];
+        }
+        for (size_type i = cur_block_id + 1; i < num_blocks_; ++i){
+            allocator_.deallocate(block_ptr_[i], BLOCK_SIZE);
+        }
+        block_allocator_.deallocate(block_ptr_, num_blocks_);
+        num_blocks_ = cur_block_id + 1;
+        block_ptr_ = new_block_pointer;
+    }
 }
 
 /* 删除第一个元素 */
@@ -440,6 +454,27 @@ template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t I
 inline void mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::pop_front(){
     (get_position_pointer(front_index_))->~T();
     front_index_ ++;
+    /* 这里要加个逻辑，避免无限的push_back, pop_front造成前面的内存块浪费 */
+    if (front_index_ == back_index_) {
+        front_index_ = back_index_ = INITIAL_INDEX; /*TODO:后面的内存块要不要管理?比如无限的先push_front再pop_back?? */
+    }
+    /* 如果当前浪费的空间大于一个block的内存与初始时内存块前面预留的空间之和，就要释放掉不使用的块 */
+    else if (front_index_ >= BLOCK_SIZE + INITIAL_INDEX) {
+        size_type cur_block_id = front_index_ / BLOCK_SIZE;
+        for (size_type i = 0; i < cur_block_id; ++i) {
+            allocator_.deallocate(block_ptr_[i], BLOCK_SIZE);
+        }
+        size_type new_num_blocks = num_blocks_ - cur_block_id;
+        pointer* new_block_pointer = block_allocator_.allocate(new_num_blocks);
+        for (size_t i = 0; i < new_num_blocks; ++i) {
+            new_block_pointer[i] = block_ptr_[i + cur_block_id];
+        }
+        block_allocator_.deallocate(block_ptr_, num_blocks_);
+        block_ptr_ = new_block_pointer;
+        num_blocks_ = new_num_blocks;
+        front_index_ -= BLOCK_SIZE * cur_block_id;
+        back_index_ -= BLOCK_SIZE * cur_block_id;
+    }
 }
 
 /* 预分配指定大小内存 */
