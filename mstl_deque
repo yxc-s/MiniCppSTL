@@ -9,7 +9,7 @@
 /* 
 TODO:
     reserve是否应该分为front和back？
-    erase考虑要不要加？对于随机访问容器，如果erase中间元素是个大开销，需要考虑一下
+    erase， insert
 */
 NAMESPACE_MSTL
 
@@ -74,6 +74,12 @@ public:
     size_type capacity()                        const noexcept { return BLOCK_SIZE * num_blocks_; }
     bool empty()                                const noexcept { return static_cast<bool> (back_index_ - front_index_ == 0);}
     void clear()                                      noexcept { call_all_destructors(); }
+
+    /* erase: 接受单个或者一对迭代器 */
+    template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>>
+    void erase(ITER_TYPE position);
+    template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>>
+    void erase(ITER_TYPE left, ITER_TYPE right);
 
     /* Iterator */
     /* 这里的设计引用了一个相关deque父类，在返回内存数据时，要先通过父类计算出下标对应的指针 */
@@ -551,6 +557,36 @@ template<typename T>
 inline bool operator !=(const mstl::deque<T>& lhs, const mstl::deque<T>& rhs){
     return !(lhs == rhs);
 }
+
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+template<typename ITER_TYPE, typename>
+inline void deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::erase(ITER_TYPE position){
+    if (position != end()) {
+        while ((position) != end()) {
+            (*position) = mstl::move(*(position + 1));
+            position ++;
+        }
+        back_index_ --;   /* 必须最后再操作，否则会影响end()函数的使用~ */
+        get_position_pointer(back_index_ - 1)->~T();
+    }
+}
+
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+template<typename ITER_TYPE, typename>
+inline void deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::erase(ITER_TYPE left, ITER_TYPE right) {
+    size_type remove_size = (right - left);
+    while (right != end()) {
+        (*left) = mstl::move(*right);
+        left ++;
+        right ++;
+    }
+    while (left != end()) {
+        get_position_pointer(left - begin())->~T();
+        left ++;
+    }
+    back_index_ -= remove_size; /* 必须最后再操作，否则会影响end()函数的使用~ */
+}
+
 
 
 END_NAMESPACE

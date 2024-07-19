@@ -14,7 +14,7 @@ NAMESPACE_MSTL
 
 /*
 TODO:
-    erase考虑要不要加？对于随机访问容器，如果erase中间元素是个大开销，需要考虑一下
+    erase, insert, 内存管理？（末尾空位太多的时候，释放点？）
 */
 template<typename T, typename Allocator = mstl::Allocator<T>>
 class vector{
@@ -65,6 +65,12 @@ public:
     size_type capacity()                        const noexcept { return capacity_; }
     bool empty()                                const noexcept { return static_cast<bool>(current_size_ == 0); }
     void clear()                                      noexcept { call_all_destructors(); }
+    
+    /* erase: 接受单个或者一对迭代器 */
+    template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>>
+    void erase(ITER_TYPE position);
+    template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>>
+    void erase(ITER_TYPE left, ITER_TYPE right);
 
     /* Iterator */
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
@@ -179,10 +185,10 @@ public:
     const_reverse_iterator crend() { return const_reverse_iterator(data_ptr_ - 1); }
 
 private:
-    Allocator                          allocator_;
-    pointer                            data_ptr_;
     size_type                          current_size_;
     size_type                          capacity_;
+    Allocator                          allocator_; 
+    pointer                            data_ptr_;/* 这个要最后声明，不然capicity还没更新，就已经..去allocate了 */
     
     /* 归还系统当前vector使用的所有内存 */
     void release_memory() {
@@ -303,6 +309,7 @@ template<typename T, typename Allocator>
 inline void vector<T, Allocator>::push_back(const value_type& value){
     if (current_size_ == capacity_){
         this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
+        capacity_ = capacity_ > 0 ? (capacity_ << 1) : 2;
     }
     new (data_ptr_ + current_size_) T(value);
     ++current_size_;
@@ -313,6 +320,7 @@ template<typename T, typename Allocator>
 inline void vector<T, Allocator>::push_back(value_type&& value){
     if (current_size_ == capacity_){
         this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
+        capacity_ = capacity_ > 0 ? (capacity_ << 1) : 2;
     }
     new (data_ptr_ + current_size_) T(mstl::move(value));
     ++current_size_;
@@ -324,6 +332,7 @@ template<typename... Args>
 inline void vector<T, Allocator>::emplace_back(Args&&... args){
     if (current_size_ == capacity_){
         this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
+        capacity_ = capacity_ > 0 ? (capacity_ << 1) : 2;
     }
     new(data_ptr_ + current_size_) T(mstl::forward<Args>(args)...);
     ++current_size_;
@@ -426,5 +435,33 @@ inline bool operator !=(const mstl::vector<T>& lhs, const mstl::vector<T>& rhs){
     return !(lhs == rhs);
 }
 
+template<typename T, typename Allocator>
+template<typename ITER_TYPE, typename>
+inline void vector<T, Allocator>::erase(ITER_TYPE position){
+    if (position != end()) {
+        while ((position) != end()) {
+            (*position) = mstl::move(*(position + 1));
+            position ++;
+        }
+        current_size_ --;   /* 必须最后再操作，否则会影响end()函数的使用~ */
+        data_ptr_[current_size_ - 1].~T();
+    }
+}
+
+template<typename T, typename Allocator>
+template<typename ITER_TYPE, typename>
+inline void vector<T, Allocator>::erase(ITER_TYPE left, ITER_TYPE right) {
+    size_type remove_size = (right - left);
+    while (right != end()) {
+        (*left) = mstl::move(*right);
+        left ++;
+        right ++;
+    }
+    while (left != end()) {
+        data_ptr_[left - begin()].~T();
+        left ++;
+    }
+    current_size_ -= remove_size; /* 必须最后再操作，否则会影响end()函数的使用~ */
+}
 
 END_NAMESPACE

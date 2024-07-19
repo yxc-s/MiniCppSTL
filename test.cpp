@@ -75,6 +75,27 @@ int main(){
         }
         
     }
+
+    /* erase test*/
+    {
+        mstl::vector<int> a(20);
+        mstl::iota(a.begin(), a.end(), 0);
+        {
+            auto b = a;
+            b.erase(b.begin() + 15);
+            for (int i = 0; i < b.size(); ++i){
+                cout << b[i] << " \n"[i == b.size() - 1];
+            }
+        }
+        {
+            auto b = a;
+            b.erase(b.begin() + 2, b.end());
+            for (int i = 0; i < b.size(); ++i){
+                cout << b[i] << " \n"[i == b.size() - 1];
+            }
+            a.clear();
+        }
+    }
     
 }
 #endif
@@ -177,12 +198,33 @@ int main(){
             cout << (it->first) << " " << (it->second) << "   ";
             ++it;
         }
+            /* erase test*/
+        {
+        cout << "Deque erase test: \n" ;
+        mstl::deque<int> a(20);
+        mstl::iota(a.begin(), a.end(), 0);
+        {
+            auto b = a;
+            b.erase(b.begin() + 15);
+            for (int i = 0; i < b.size(); ++i){
+                cout << b[i] << " \n"[i == b.size() - 1];
+            }
+            }   
+            {
+                auto b = a;
+                b.erase(b.begin() + 2, b.end());
+                for (int i = 0; i < b.size(); ++i){
+                    cout << b[i] << " \n"[i == b.size() - 1];
+                }
+                a.clear();
+            }
+        }
     }
 #endif
 
 
 //红黑树测试，好像测试不了，得先继承才行。。
-#if 1
+#if 0
     {   
         mstl::multiset<int> s;
         s.insert(2);
@@ -232,7 +274,7 @@ int main(){
     }
 #endif
 
-#if 1
+#if 0
     {
         mstl::map<int, int> mapp;
         mapp.insert(mstl::pair{2, 3});
