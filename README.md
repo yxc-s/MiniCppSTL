@@ -12,19 +12,17 @@ If this repository is helpful for your studies or work, please consider giving i
 
 
 DataStructure:  
-  vector和deque的(insert, erase) (应该是两种形式：1 对于单个元素的操作，2 对于另一组迭代器的操作)   
-  比如erase(unique(x.begin(), x.end()), x.end())
   unordered_map, unordered_set,  
-  queue,  
   priority_queue,  
-    
+  list?  
+  
   
 iterator  
-  distance? （随机访问迭代器不需要，因为实现了-和+，那就是链表容器跟树的容器需要)
+  distance? 
     
   
 Algorithms:  
-  unique,  
+  unique
 
 
   

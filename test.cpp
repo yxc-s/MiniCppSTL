@@ -14,7 +14,7 @@ using namespace std;
 int main(){
 
     //vector
-#if 0
+#if 1
 {
     mstl::vector<int> my_vec_a(10, -1);
     mstl::vector<int> my_vec_b(10, -1);
@@ -77,7 +77,8 @@ int main(){
     }
 
     /* erase test*/
-    {
+    {   
+        cout << "vector erase test: \n";
         mstl::vector<int> a(20);
         mstl::iota(a.begin(), a.end(), 0);
         {
@@ -94,6 +95,23 @@ int main(){
                 cout << b[i] << " \n"[i == b.size() - 1];
             }
             a.clear();
+        }
+    }
+    /* insertion test */
+    {
+        cout << "vector inser test: \n";
+        mstl::vector<int> a(10, -1);
+        a.insert(a.begin(), 0);
+        for (int i = 0; i < a.size(); ++i) {
+            cout << a[i] << " \n"[i == a.size() - 1];
+        }
+        auto b = a;
+        
+        mstl::deque<int> c{a.begin(), a.end()};
+        auto t = c.end() - c.begin();
+        b.insert(b.begin() + 2, c.begin(), c.end());    /* 使用其他容器的迭代器构造! */
+        for (int i = 0; i < b.size(); ++i) {
+            cout << b[i] << " \n"[i == b.size() - 1];
         }
     }
     
@@ -218,6 +236,24 @@ int main(){
                 }
                 a.clear();
             }
+        }
+        
+    }
+        /* insertion test */
+    {
+        cout << "deque inser test: \n";
+        mstl::deque<int> a(10, -1);
+        a.insert(a.begin(), 0);
+        auto t = a.end() - a.begin();
+        for (int i = 0; i < a.size(); ++i) {
+            cout << a[i] << " \n"[i == a.size() - 1];
+        }
+        auto b = a;
+        mstl::vector<int> c{a.begin(), a.end()};
+         t = c.end() - c.begin();
+        b.insert(b.begin() + 2, c.begin(), c.end());    /* 使用其他容器的迭代器构造! */
+        for (int i = 0; i < b.size(); ++i) {
+            cout << b[i] << " \n"[i == b.size() - 1];
         }
     }
 #endif

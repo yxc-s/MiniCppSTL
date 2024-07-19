@@ -13,8 +13,7 @@
 NAMESPACE_MSTL
 
 /*
-TODO:
-    erase, insert, 内存管理？（末尾空位太多的时候，释放点？）
+TODO: 内存管理？（末尾空位太多的时候，释放点？）
 */
 template<typename T, typename Allocator = mstl::Allocator<T>>
 class vector{
@@ -37,7 +36,7 @@ public:
     vector(const std::initializer_list<value_type>& initializer) noexcept;
     /* 这里先不限定只接受vector，先限定只接受随机访问容器，不然没法给其他容器排序 */
     template<typename InputIterator, typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename InputIterator::iterator_category>>>
-    vector(const InputIterator& begin, const InputIterator& end);
+    vector(InputIterator begin, InputIterator end);
     ~vector();
 
     /* 一些常用函数 */
@@ -66,11 +65,23 @@ public:
     bool empty()                                const noexcept { return static_cast<bool>(current_size_ == 0); }
     void clear()                                      noexcept { call_all_destructors(); }
     
-    /* erase: 接受单个或者一对迭代器 */
+    /* erase: 接受单个或者一对迭代器（自身的迭代器）TODO:万一是其他vector的迭代器呢？先按未定义行为处理 */
     template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>>
     void erase(ITER_TYPE position);
     template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>>
     void erase(ITER_TYPE left, ITER_TYPE right);
+
+    /* insert: 接受一个左值或者右值 */
+    template<typename ITER_TYPE, typename U, 
+        typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>,
+        typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<U>, value_type>>>
+    void insert(ITER_TYPE position, U&& value);
+
+    /* insert: 接受一对迭代器，保证positon为vector迭代器，保证InputIterator是mstl的任何类型容器迭代器 */
+    template<typename ITER_TYPE, typename InputIterator, 
+        typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>,
+        typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename InputIterator::iterator_category>>>
+    void insert(ITER_TYPE position, InputIterator left, InputIterator right); 
 
     /* Iterator */
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
@@ -283,15 +294,19 @@ inline vector<T, Allocator>::vector(const std::initializer_list<value_type>& ini
 /* 迭代器构造 */
 template<typename T, typename Allocator>
 template<typename InputIterator, typename>
-inline vector<T, Allocator>::vector(const InputIterator& begin, const InputIterator& end): 
-    data_ptr_(allocator_.allocate(end - begin + 1)),
-    current_size_(end - begin + 1),
-    capacity_(end - begin + 1)
-{   
-    auto it = begin;
+inline vector<T, Allocator>::vector(InputIterator begin, InputIterator end){   
+    size_type num_new_elements = 0;
+    if constexpr (std::is_same_v<typename InputIterator::iterator_category, mstl::random_access_iterator_tag>) {
+        num_new_elements = (end - begin);
+    }
+    else{
+        for (auto it = begin; it != end; ++it, ++num_new_elements);
+    }
+    current_size_ = capacity_ = num_new_elements;
+    data_ptr_ = allocator_.allocate(num_new_elements);
     for (size_t i = 0; i < current_size_; ++i){
-        data_ptr_[i] = *(it);
-        ++it;
+        data_ptr_[i] = *(begin);
+        ++begin;
     }
 }
 
@@ -309,7 +324,6 @@ template<typename T, typename Allocator>
 inline void vector<T, Allocator>::push_back(const value_type& value){
     if (current_size_ == capacity_){
         this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
-        capacity_ = capacity_ > 0 ? (capacity_ << 1) : 2;
     }
     new (data_ptr_ + current_size_) T(value);
     ++current_size_;
@@ -320,7 +334,6 @@ template<typename T, typename Allocator>
 inline void vector<T, Allocator>::push_back(value_type&& value){
     if (current_size_ == capacity_){
         this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
-        capacity_ = capacity_ > 0 ? (capacity_ << 1) : 2;
     }
     new (data_ptr_ + current_size_) T(mstl::move(value));
     ++current_size_;
@@ -332,7 +345,6 @@ template<typename... Args>
 inline void vector<T, Allocator>::emplace_back(Args&&... args){
     if (current_size_ == capacity_){
         this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
-        capacity_ = capacity_ > 0 ? (capacity_ << 1) : 2;
     }
     new(data_ptr_ + current_size_) T(mstl::forward<Args>(args)...);
     ++current_size_;
@@ -462,6 +474,51 @@ inline void vector<T, Allocator>::erase(ITER_TYPE left, ITER_TYPE right) {
         left ++;
     }
     current_size_ -= remove_size; /* 必须最后再操作，否则会影响end()函数的使用~ */
+}
+
+/* insert: 接受一个左值或者右值 */
+template<typename T, typename Allocator>
+template<typename ITER_TYPE, typename U, typename, typename>
+inline void vector<T, Allocator>::insert(ITER_TYPE position, U&& value){
+    if (current_size_ == capacity_) {
+        size_type d = position - begin();  /* 非常重要! 内存重新分配后之前迭代器全都失效 ~ */
+        this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
+        position = begin() + d;
+    }
+    for (auto it = end(); it != position; --it) {
+        (*it) = mstl::move(*(it - 1));
+    }
+    new (&(*position)) T(mstl::forward<U>(value));
+    current_size_ += 1;
+}
+
+
+/* insert: 接受一对迭代器 */
+template<typename T, typename Allocator>
+template<typename ITER_TYPE, typename InputIterator, typename, typename>
+inline void vector<T, Allocator>::insert(ITER_TYPE position, InputIterator left, InputIterator right){
+    //size_type num_new_elements = ..如果是红黑树呢？没有distance啊，不过这里保证left是right前面的迭代器，也可以
+    size_type num_new_elements = 0;
+    if constexpr (std::is_same_v<typename InputIterator::iterator_category, mstl::random_access_iterator_tag>) {
+        num_new_elements = (right - left);
+    }
+    else{
+        for (auto it = left; it != right; ++it, ++num_new_elements);
+    }
+    if (current_size_ + num_new_elements > capacity_) {
+        size_type d = position - begin();  /* 非常重要! 内存重新分配后之前迭代器全都失效 ~ */
+        this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
+        position = begin() + d;
+    }
+    for (auto it = end() - 1; it >= position; --it) {
+        (*(it + num_new_elements)) = mstl::move(*(it));
+    }
+    while (left < right) {
+        (*position) = (*left);
+        left ++;
+        ++position;
+    }
+    current_size_ += num_new_elements;
 }
 
 END_NAMESPACE

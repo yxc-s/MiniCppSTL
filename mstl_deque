@@ -9,7 +9,6 @@
 /* 
 TODO:
     reserve是否应该分为front和back？
-    erase， insert
 */
 NAMESPACE_MSTL
 
@@ -38,8 +37,9 @@ public:
     deque(const this_deque_type& other);
     deque(this_deque_type&& other);
     deque(const std::initializer_list<value_type>& initializer) noexcept;
-    template<typename InputIterator>
-    deque(const InputIterator& begin, const InputIterator& end);
+    template<typename InputIterator,
+        typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename InputIterator::iterator_category>>>
+    deque(InputIterator begin, InputIterator end);
     ~deque();
 
     /* 一些常用函数 */
@@ -80,6 +80,19 @@ public:
     void erase(ITER_TYPE position);
     template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>>
     void erase(ITER_TYPE left, ITER_TYPE right);
+
+    /* insert: 接受一个左值或者右值 */
+    template<typename ITER_TYPE, typename U, 
+        typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>,
+        typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<U>, value_type>>>
+    void insert(ITER_TYPE position, U&& value);
+
+    /* insert: 接受一对迭代器，保证positon为deque迭代器，保证InputIterator是mstl的任何类型容器迭代器 */
+    template<typename ITER_TYPE, typename InputIterator, 
+        typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>,
+        typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename InputIterator::iterator_category>>>
+    void insert(ITER_TYPE position, InputIterator left, InputIterator right); 
+
 
     /* Iterator */
     /* 这里的设计引用了一个相关deque父类，在返回内存数据时，要先通过父类计算出下标对应的指针 */
@@ -349,18 +362,26 @@ inline mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::deque(const std::in
 
 /* 迭代器构造 */
 template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
-template<typename InputIterator>
-mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::deque(const InputIterator& begin, const InputIterator& end):
-    front_index_(INITIAL_INDEX),
-    back_index_(front_index_ + (end - begin)),
-    num_blocks_((INITIAL_CAPACITY + (end - begin) + BLOCK_SIZE - 1) / BLOCK_SIZE),
-    block_ptr_(block_allocator_.allocate(num_blocks_ * sizeof(pointer)))
+template<typename InputIterator, typename>
+mstl::deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::deque(InputIterator begin, InputIterator end):
+    front_index_(INITIAL_INDEX)
 {   
+    size_type num_new_elements = 0;
+    if constexpr (std::is_same_v<typename InputIterator::iterator_category, mstl::random_access_iterator_tag>) {
+        num_new_elements = (end - begin);
+    }
+    else{
+        for (auto it = begin; it != end; ++it, ++num_new_elements);
+    }
+    back_index_ = front_index_ + num_new_elements;
+    num_blocks_ = ((INITIAL_CAPACITY + (end - begin) + BLOCK_SIZE - 1) / BLOCK_SIZE);
+    block_ptr_ = block_allocator_.allocate(num_blocks_ * sizeof(pointer));
     for (size_t i = 0; i < num_blocks_; ++i){
         block_ptr_[i] = allocator_.allocate(BLOCK_SIZE);
     }
-    for (size_t i = front_index_; i < back_index_; ++i){
-        new(get_position_pointer(i)) T(*(begin + i - front_index_));
+    for (size_t i = 0; i < num_new_elements; ++i){
+        new(get_position_pointer(i + front_index_)) T(*(begin));
+        ++begin;
     }
 }
 
@@ -588,5 +609,49 @@ inline void deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::erase(ITER_TYPE left
 }
 
 
+/* insert: 接受一个左值或者右值 */
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+template<typename ITER_TYPE, typename U, typename, typename>
+inline void deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::insert(ITER_TYPE position, U&& value){
+    if (back_index_ == num_blocks_ * BLOCK_SIZE) {
+        size_type d = position - begin();  /* 非常重要! 内存重新分配后之前迭代器全都失效 ~ */
+        this->reserve((num_blocks_ + 1) * BLOCK_SIZE);
+        position = begin() + d;
+    }
+    for (auto it = end(); it != position; --it) {
+        (*it) = mstl::move(*(it - 1));
+    }
+    new (&(*position)) T(mstl::forward<U>(value));
+    back_index_ += 1;
+}
+
+
+/* insert: 接受一对迭代器 */
+template<typename T, typename Allocator, mstl::size_t BLOCK_SIZE, mstl::size_t INITIAL_INDEX>
+template<typename ITER_TYPE, typename InputIterator, typename, typename>
+inline void deque<T, Allocator, BLOCK_SIZE, INITIAL_INDEX>::insert(ITER_TYPE position, InputIterator left, InputIterator right){
+    //size_type num_new_elements = ..如果是红黑树呢？没有distance啊，不过这里保证left是right前面的迭代器，也可以
+    size_type num_new_elements = 0;
+    if constexpr (std::is_same_v<typename InputIterator::iterator_category, mstl::random_access_iterator_tag>) {
+        num_new_elements = (right - left);
+    }
+    else{
+        for (auto it = left; it != right; ++it, ++num_new_elements);
+    }
+    if (num_blocks_ * BLOCK_SIZE - back_index_ < num_new_elements) {
+        size_type d = position - begin();  /* 非常重要! 内存重新分配后之前迭代器全都失效 ~ */
+        this->reserve(num_blocks_ * BLOCK_SIZE + num_new_elements);
+        position = begin() + d;
+    }
+    for (auto it = end() - 1; it >= position; --it) {
+        (*(it + num_new_elements)) = mstl::move(*(it));
+    }
+    while (left < right) {
+        (*position) = (*left);
+        left ++;
+        ++position;
+    }
+    back_index_ += num_new_elements;
+}
 
 END_NAMESPACE
