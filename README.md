@@ -15,7 +15,6 @@ DataStructure:
   vector和deque的(insert, erase) (应该是两种形式：1 对于单个元素的操作，2 对于另一组迭代器的操作)   
   比如erase(unique(x.begin(), x.end()), x.end())
   unordered_map, unordered_set,  
-  queue,  
   priority_queue,  
     
   
