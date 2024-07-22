@@ -14,11 +14,11 @@ class map_impl: public mstl::RedBlackTree<T, U, COMPARE_FUNCTION, Allocator, tru
     using node_value_type = typename node_type::value_type;
     using this_map_type = map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>;
 public:
-    using value_type = typename tree_base::node_type;
-    using pointer = value_type*;
-    using reference = value_type&;
-    using const_pointer = const pointer;
-    using const_reference = const reference;
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
+    using const_pointer = const T*;
+    using const_reference = const T&;
     using difference_type  =  std::ptrdiff_t;
 
     /* 当前类和迭代器类里都根据 IS_MULTI 定义了一个相同的迭代器类型，保证在erase的时候进行类型检查不会出错 */
@@ -50,7 +50,7 @@ public:
         tree_base::root_ = tree_base::nil_;
         if (!other.isNil(other.root_)) {
             tree_base::root_ = tree_base::allocator_.allocate(1);
-            new(tree_base::root_) node_type(other.root_->data_);
+            new(tree_base::root_) node_type(other.root_->data_, tree_base::nil_);
             tree_base::build(other, tree_base::root_, other.root_);
         }
     }
@@ -259,12 +259,48 @@ public:
 
 /* map : 相同元素最多只有一个的红黑树，这里跟set的区别是多了一个模板参数U（表示value的类型） */
 template<typename T, typename U, typename COMPARE_FUNCTION = mstl::less<mstl::pair<T, U>>, typename Allocator = mstl::Allocator<mstl::pair<T, U>>>
-class map: public map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, false> {};
+class map: public map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, false> {
+    using this_type = map<T, U, COMPARE_FUNCTION, Allocator>;
+    using this_base = map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, true>;
+public:
+    map() = default;
+    map(const this_type& other): this_base(other) {};
+    map(this_type&& other) : this_base(other){};
+    map(const std::initializer_list<T>& init) :this_base(init){}
+    ~map() = default;
+
+    this_type& operator =(const this_type& other) {
+        this_base::operator =(other);
+        return *this;
+    }
+    this_type& operator =(this_type&& other) {
+        this_base::operator =(mstl::move(other));
+        return *this;
+    }
+};
 
 
 
 /* multimap : 相同元素可以有很多的红黑树 */
 template<typename T, typename U, typename COMPARE_FUNCTION = mstl::less<mstl::pair<T, U>>, typename Allocator = mstl::Allocator<mstl::pair<T, U>>>
-class multimap: public map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, true> {};
+class multimap: public map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, true> {
+    using this_type = map<T, U, COMPARE_FUNCTION, Allocator>;
+    using this_base = map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, true>;
+public:
+    multimap() = default;
+    multimap(const this_type& other): this_base(other) {};
+    multimap(this_type&& other) : this_base(other){};
+    multimap(const std::initializer_list<T>& init) :this_base(init){}
+    ~multimap() = default;
+
+    this_type& operator =(const this_type& other) {
+        this_base::operator =(other);
+        return *this;
+    }
+    this_type& operator =(this_type&& other) {
+        this_base::operator =(mstl::move(other));
+        return *this;
+    }
+};
 
 END_NAMESPACE

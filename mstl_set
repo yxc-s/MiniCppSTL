@@ -14,10 +14,10 @@ class set_impl: public mstl::RedBlackTree<T, T, COMPARE_FUNCTION, Allocator, fal
     using node_value_type = typename node_type::value_type;
     using this_set_type = set_impl<T, COMPARE_FUNCTION, Allocator, IS_MULTI>;
 public:
-    using value_type = typename tree_base::node_type;
-    using pointer = value_type*;
-    using reference = value_type&;
-    using const_pointer = const pointer;
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
+    using const_pointer = const T&;
     using const_reference = const reference;
     using difference_type  =  std::ptrdiff_t;
 
@@ -31,7 +31,8 @@ public:
     set_impl(this_set_type&& other) : tree_base(mstl::move(other)) {}
     set_impl(const std::initializer_list<value_type>& initializer) {
         for (const auto& value : initializer) {
-            insert(value);  //TODO:批量插入策略？？
+            auto t = value;
+            tree_base::insert(value);  //TODO:批量插入策略？？
         }
     }
     template<typename InputIterator, typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename InputIterator::iterator_category>>>
@@ -43,16 +44,17 @@ public:
     }
     virtual ~set_impl() override = default;
 
-    /* =拷贝 */
+    /* =拷贝 */ 
     this_set_type& operator =(const this_set_type& other) {
         tree_base::destory(tree_base::root_);
         tree_base::current_size_ = other.current_size_;
         tree_base::root_ = tree_base::nil_;
         if (!other.isNil(other.root_)) {
             tree_base::root_ = tree_base::allocator_.allocate(1);
-            new(tree_base::root_) node_type(other.root_->data_);
+            new(tree_base::root_) node_type(other.root_->data_, tree_base::nil_);
             tree_base::build(other, tree_base::root_, other.root_);
         }
+        return *this;
     }
     /* =移动语义*/
     this_set_type& operator =(this_set_type&& other) {
@@ -255,12 +257,48 @@ public:
 
 /* set : 相同元素最多只有一个的红黑树 */
 template<typename T, typename COMPARE_FUNCTION = mstl::less<T>, typename Allocator = mstl::Allocator<T>>
-class set: public set_base::set_impl<T, COMPARE_FUNCTION, Allocator, false> {};
+class set: public set_base::set_impl<T, COMPARE_FUNCTION, Allocator, false> {
+    using this_type = set<T, COMPARE_FUNCTION, Allocator>;
+    using this_base = set_base::set_impl<T, COMPARE_FUNCTION, Allocator, false>;
+public:
+    set() = default;
+    set(const this_type& other): this_base(other) {};
+    set(this_type&& other) : this_base(other){};
+    set(const std::initializer_list<T>& init) :this_base(init){}
+    ~set() = default;
+
+    this_type& operator =(const this_type& other) {
+        this_base::operator =(other);
+        return *this;
+    }
+    this_type& operator =(this_type&& other) {
+        this_base::operator =(mstl::move(other));
+        return *this;
+    }
+};
 
 
 
 /* multiset : 相同元素可以有很多的红黑树 */
 template<typename T, typename COMPARE_FUNCTION = mstl::less<T>, typename Allocator = mstl::Allocator<T>>
-class multiset: public set_base::set_impl<T, COMPARE_FUNCTION, Allocator, true> {};
+class multiset: public set_base::set_impl<T, COMPARE_FUNCTION, Allocator, true> {
+    using this_type = set<T, COMPARE_FUNCTION, Allocator>;
+    using this_base = set_base::set_impl<T, COMPARE_FUNCTION, Allocator, true>;
+public:
+    multiset() = default;
+    multiset(const this_type& other): this_base(other) {};
+    multiset(this_type&& other) : this_base(other){};
+    multiset(const std::initializer_list<T>& init) :this_base(init){}
+    ~multiset() = default;
+
+    this_type& operator =(const this_type& other) {
+        this_base::operator =(other);
+        return *this;
+    }
+    this_type& operator =(this_type&& other) {
+        this_base::operator =(mstl::move(other));
+        return *this;
+    }
+};
 
 END_NAMESPACE

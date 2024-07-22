@@ -10,11 +10,15 @@
 #include "mstl_map"
 #include "mstl_stack"
 #include "mstl_queue"
+#include "mstl_list"
+
 using namespace std;
+
+
 int main(){
 
     //vector
-#if 1
+#if 0
 {
     mstl::vector<int> my_vec_a(10, -1);
     mstl::vector<int> my_vec_b(10, -1);
@@ -170,7 +174,7 @@ int main(){
 #endif
 
 //deque
-#if 1
+#if 0
     {
         mstl::deque<int> a{1,2,3,4,5};
         //cout << a.size() << endl;
@@ -307,6 +311,14 @@ int main(){
         it = s.end();
         --it;
         cout << (*it) << endl;
+        {
+            mstl::set<int> t{1,2,3};
+            for (auto it = t.begin(); it != t.end(); ++it){
+                cout << (*it) << ' ';
+            }
+            mstl::set<int> a;
+            a = t;
+        }
     }
 #endif
 
@@ -365,6 +377,33 @@ int main(){
             a.pop();
         }
         cout << endl;
+    }
+#endif
+
+
+//list
+#if 1
+    {   
+        std::cout << "list: initializer list test\n";
+        mstl::list<int> a{2,3,4,5,6};
+        for (auto it = a.cbegin(); it != a.cend(); ++it){
+            cout << (*it) << ' ';
+        }
+        cout << endl;
+        for (auto it = a.rbegin(); it != a.rend(); ++it){
+            cout << (*it) << ' ';
+        }
+        cout << endl;
+        {
+            std::cout << "list: set iterator list test\n";
+            mstl::set<int> b{3,2,4,5,1};
+             mstl::list<int> c{b.begin(), b.end()};
+            for (auto x : c) {
+                cout << x << ' ';
+            }
+            cout << endl;
+        }
+
     }
 #endif
 

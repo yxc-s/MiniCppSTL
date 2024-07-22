@@ -118,7 +118,7 @@ public:
         root_ = nil_; 
         if (!other.isNil(other.root_)) {
             root_ = allocator_.allocate(1);
-            new(root_) node_type(other.root_->data_);
+            new(root_) node_type(other.root_->data_, nil_);
             build(other, root_, other.root_);
         }
     }
@@ -148,6 +148,7 @@ public:
     template<typename V, typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<V>, typename node_type::value_type>>>
     void insert(V&& value);
 
+    void insert(const typename node_type::value_type& value);
 
     /* 统计指定元素出现次数 */
     size_type count(const typename node_type::value_type& value) noexcept {
@@ -187,7 +188,9 @@ public:
         current_size_ = 0; 
     }
 
-private:
+
+
+protected:   
     node_type*              root_;
     size_type               current_size_;
     compare_function_type   compare_function_;
@@ -202,15 +205,13 @@ private:
             allocator_.deallocate(node, 1);
         }
     }
-
-protected:
     /* 哨兵! */
     node_type*              nil_;
 
     void build(const this_tree_type& other, node_type* cur_node, node_type* other_node) {
         if (!other.isNil(other_node->left_)) {
             node_type* temp = allocator_.allocate(1);
-            new(temp) node_type(other_node->left_->data_);
+            new(temp) node_type(other_node->left_->data_, nil_);
             cur_node->left_ = temp;
             temp->parent_ = cur_node;
             build(other, temp, other_node->left_);
@@ -220,7 +221,7 @@ protected:
         }
         if (!other.isNil(other_node->right_)) {
             node_type* temp = allocator_.allocate(1);
-            new(temp) node_type(other_node->right_->data_);
+            new(temp) node_type(other_node->right_->data_, nil_);
             cur_node->right_ = temp;
             temp->parent_ = cur_node;
             build(other, temp, other_node->right_);
@@ -459,6 +460,25 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert(V&&
     }
     node_type* new_node = allocator_.allocate(1);
     new(new_node) node_type(mstl::forward<V>(value), nil_);
+    insert_new_node_impl(new_node);
+    insert_fix_impl(new_node);
+    current_size_ ++;
+}
+
+/* 重载的insert， 可以接受const左值 */
+template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert(const typename node_type::value_type& value){
+    if constexpr (!IS_MULTI) {
+        node_type* temp = find_node(value);
+        if (!isNil(temp)) {
+            if constexpr (IS_MAP) {
+                temp->data_.second = (value.second);
+            }
+            return;
+        }
+    }
+    node_type* new_node = allocator_.allocate(1);
+    new(new_node) node_type(value, nil_);
     insert_new_node_impl(new_node);
     insert_fix_impl(new_node);
     current_size_ ++;
