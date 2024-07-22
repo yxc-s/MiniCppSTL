@@ -1,0 +1,17 @@
+#pragma once
+
+#include "mstl_core_size_t"                    /* size_t type */
+#include "../utility/mstl_utility"        /* basic tools */
+#include <initializer_list>               /* 因为{}与编译器绑定，所以不再自己实现初始化列表 */
+
+
+
+#define NAMESPACE_MSTL namespace mstl{
+#define END_NAMESPACE                }
+
+
+
+
+NAMESPACE_MSTL
+
+END_NAMESPACE

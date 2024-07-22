@@ -1,6 +1,7 @@
-#include "mstl_global"
-#include "mstl_deque"
-#include "mstl_vector"
+#pragma once
+#include "../core/mstl_common"
+#include "../containers/mstl_deque"
+#include "../containers/mstl_vector"
 
 
 NAMESPACE_MSTL

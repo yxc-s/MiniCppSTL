@@ -1,7 +1,7 @@
 #pragma once
-#include "mstl_global"
-#include "mstl_allocator"
-#include "mstl_iterator_base"
+#include "../core/mstl_common"
+#include "../allocators/mstl_allocator"
+#include "../iterators/mstl_iterator_base" 
 
 NAMESPACE_MSTL
 
@@ -36,20 +36,20 @@ public:
     list(const this_list_type& other);
     list(this_list_type&& other);
     list(const std::initializer_list<T>& init);
-    template<typename ITER, typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename ITER::iterator_category>>>
-    list(ITER left, ITER rigt);
+    template<typename Iterator, typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename Iterator::iterator_category>>>
+    list(Iterator left, Iterator rigt);
     ~list();
 
 
     /* insert: 迭代器类型被严格限制 */
-    template<typename ITER, typename = std::enable_if_t<std::is_same_v<typename ITER::container_type, container_type>>>
-    void insert(ITER pos, const value_type& value);
-    template<typename ITER, typename = std::enable_if_t<std::is_same_v<typename ITER::container_type, container_type>>>
-    void insert(ITER pos, value_type&& value);
+    template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
+    void insert(Iterator pos, const value_type& value);
+    template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
+    void insert(Iterator pos, value_type&& value);
 
     /* insert: 迭代器类型被严格限制*/
-    template<typename ITER, typename = std::enable_if_t<std::is_same_v<typename ITER::container_type, container_type>>>
-    void erase(ITER pos);
+    template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
+    void erase(Iterator pos);
 
     //形参应该怎么写呢？默认less<T>?
     void sort(const mstl::less<value_type>& compare = mstl::less<value_type>());
@@ -260,8 +260,8 @@ list<T, Allocator>::list(const std::initializer_list<T>& init) :list(){
 
 /* 迭代器构造 */
 template<typename T, typename Allocator>
-template<typename ITER, typename>
-list<T, Allocator>::list(ITER left, ITER right) : list() {
+template<typename Iterator, typename>
+list<T, Allocator>::list(Iterator left, Iterator right) : list() {
     node_type* cur = head_;
     while (left != right){
         node_type* temp = node_allocator_.allocate(1);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mstl_global"
+#include "../core/mstl_common"
 #include <atomic>
 
 NAMESPACE_MSTL

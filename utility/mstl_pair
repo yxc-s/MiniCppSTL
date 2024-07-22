@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mstl_global"
+#include "../core/mstl_common"
 #include <type_traits>      //remove_reference
 
 NAMESPACE_MSTL

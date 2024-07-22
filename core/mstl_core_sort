@@ -1,0 +1,130 @@
+#pragma once
+
+
+namespace mstl{
+    namespace algorithm_base{
+    /* 插排 insertion sort! */
+    template<typename Iterator, typename ITER_VALUE_TYPE = typename Iterator::value_type, typename COMPARE_FUNCTION = mstl::less<ITER_VALUE_TYPE>>
+    void insertion_sort_impl(const Iterator& begin, const Iterator& end, const COMPARE_FUNCTION& compare_function = COMPARE_FUNCTION()) {
+        if (begin == end) { 
+            return;
+        }
+        for (Iterator it = mstl::next(begin); it != end; ++it){
+            auto temp = *it;
+            auto rt = mstl::prev(it);
+            while (rt != begin && compare_function(temp, *rt)){
+                *mstl::next(rt) = *rt;
+                --rt;
+            }
+            if (rt == begin && compare_function(temp, *rt)){
+                *mstl::next(rt) = *rt;
+                *rt = temp;
+            }
+            else{
+                *(mstl::next(rt)) = temp;
+            }
+        }
+    }
+
+    /* 归并排序 */
+    template<typename Iterator, typename ITER_VALUE_TYPE = typename Iterator::value_type, typename COMPARE_FUNCTION = mstl::less<ITER_VALUE_TYPE>>
+    void merge_sort_impl(const Iterator& begin, const Iterator& end, const COMPARE_FUNCTION& compare_function = COMPARE_FUNCTION()){
+        if (end - begin <= 16){
+            insertion_sort_impl<Iterator, ITER_VALUE_TYPE, COMPARE_FUNCTION>(begin, end);
+            return;
+        }
+        auto middle = begin + (end - begin) / 2;
+        merge_sort_impl(begin, middle, compare_function);
+        merge_sort_impl(middle, end, compare_function);
+        mstl::vector<ITER_VALUE_TYPE> left(begin, middle);
+        mstl::vector<ITER_VALUE_TYPE> right(middle, end);
+
+        auto left_iter = left.begin();
+        auto right_iter = right.begin();
+        auto dest_iter = begin;
+
+        /* 合并左右子区间 */
+        while (left_iter != left.end() && right_iter != right.end()) {
+            if (compare_function(*left_iter, *right_iter)) {
+                *dest_iter++ = *left_iter++;
+            } else {
+                *dest_iter++ = *right_iter++;
+            }
+        }
+
+        while (left_iter != left.end()) {
+            *dest_iter++ = *left_iter++;
+        }
+
+        while (right_iter != right.end()) {
+            *dest_iter++ = *right_iter++;
+        }
+    }
+
+    /* 三数取中法 */
+    template<typename Iterator, typename COMPARE_FUNCTION>
+    Iterator median_of_three(Iterator begin, Iterator end, const COMPARE_FUNCTION& compare_function) {
+        auto middle = begin + ((end - begin) / 2);
+        if (compare_function(*middle, *begin)) {
+            mstl::swap(*begin, *middle);
+        }
+        if (compare_function(*(end - 1), *begin)) {
+            mstl::swap(*begin, *(end - 1));
+        }
+        if (compare_function(*(end - 1), *middle)) {
+            mstl::swap(*middle, *(end - 1));
+        }
+        mstl::swap(*middle, *(end - 1)); // 将枢纽放到最后一个元素的位置
+        return end - 1;
+    } 
+
+    /* 分区函数 */ 
+    template<typename Iterator, typename COMPARE_FUNCTION>
+    inline Iterator partition(Iterator begin, Iterator end, const COMPARE_FUNCTION& compare_function) {
+        auto pivot_iter = median_of_three(begin, end, compare_function);
+        auto pivot_value = *pivot_iter;
+        auto left = begin;
+        auto right = end - 2; // 因为pivot在end-1位置
+        while (true) {
+            while (compare_function(*left, pivot_value)) {
+                ++left;
+            }
+            while (compare_function(pivot_value, *right)) {
+                --right;
+            }
+            if (left >= right) {
+                break;
+            }
+            mstl::swap(*left, *right);
+            ++left;
+            --right;
+        }
+        mstl::swap(*left, *(end - 1)); // 将枢纽放回正确的位置
+        return left;
+    }
+
+    /* 快排 quick sort! */
+    template<typename Iterator, typename ITER_VALUE_TYPE = typename Iterator::value_type, typename COMPARE_FUNCTION = mstl::less<ITER_VALUE_TYPE>>
+    void quick_sort_impl(const Iterator& begin, const Iterator& end, 
+        const COMPARE_FUNCTION& compare_function = COMPARE_FUNCTION(), 
+        int max_depth = -1,
+        int cur_depth = 0)
+    {   
+        if (max_depth == -1) {
+            max_depth = 2 * mstl::log2(end - begin + 1);
+        }
+        if (cur_depth >= max_depth){
+            merge_sort_impl<Iterator, ITER_VALUE_TYPE, COMPARE_FUNCTION>(begin, end);
+        }
+        else if (end - begin >= 16){
+            auto partition_iter = mstl::algorithm_base::partition(begin, end, compare_function);
+            quick_sort_impl(begin, partition_iter, compare_function, max_depth, cur_depth + 1);
+            quick_sort_impl(partition_iter + 1, end, compare_function, max_depth, cur_depth + 1);
+        }
+        else{
+            insertion_sort_impl<Iterator, ITER_VALUE_TYPE, COMPARE_FUNCTION>(begin, end);
+        }
+    }
+}
+
+}

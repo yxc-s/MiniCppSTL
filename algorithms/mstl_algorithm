@@ -1,0 +1,126 @@
+#pragma once
+
+#include "../core/mstl_common"
+#include "../containers/mstl_vector"
+#include "../core/mstl_core_sort"
+NAMESPACE_MSTL
+
+
+/*
+TODO
+  迭代器距离更安全的判断（distance函数）
+*/
+
+
+/* 返回小值 return minimum value */
+template <typename T>
+inline T min(const T& lhs, const T& rhs){
+    return lhs <= rhs ? lhs : rhs;
+}
+
+/* 返回大值 return maximum value */
+template <typename T>
+inline T max(const T& lhs, const T& rhs){
+    return lhs >= rhs ? lhs : rhs;
+}
+
+/* 返回数值最小的迭代器 return iterator with minimum value */
+template <typename Iterator>
+Iterator min_element(Iterator begin, const Iterator& end){
+    if (begin == end) {
+        return begin;
+    }
+    Iterator res = begin++;
+    while (begin != end){
+        if (*res < *begin){
+            res = begin;
+        }
+        begin ++;
+    }
+    return res;
+}
+
+
+/* 返回数值最大的迭代器 return iterator with maximum value */
+template <typename Iterator>
+Iterator max_element(Iterator begin, const Iterator& end){
+    if (begin == end) {
+        return begin;
+    }
+    Iterator res = begin++;
+    while (begin != end){
+        if (*res > *begin){
+            res = begin;
+        }
+        begin ++;
+    }
+    return res;
+}
+
+/* reverse all elements! */
+template<typename Iterator>
+inline void reverse(Iterator begin, Iterator end){
+    while (begin != end && begin != --end){
+        mstl::swap(*begin, *end);
+        begin ++;
+    }
+}
+
+
+/* fill container with value of x */
+template<typename Iterator>
+inline void fill(Iterator begin, const Iterator& end, const typename Iterator::value_type& x){
+    while (begin != end){
+        *begin = x;
+        begin ++;
+    }
+}
+
+
+ /* iota! */
+template<typename Iterator>
+inline void iota(Iterator begin, const Iterator& end, typename Iterator::value_type value){
+    while (begin != end){
+        *begin ++ = value ++;
+    }
+}
+
+/* 内省排序：快排，堆排与插排的结合 */
+template <typename Iterator, typename COMPARE_FUNCTION = mstl::less<typename Iterator::value_type>>
+void sort(Iterator begin, Iterator end, COMPARE_FUNCTION compare_function = COMPARE_FUNCTION()) {
+    algorithm_base::quick_sort_impl<Iterator, typename Iterator::value_type, COMPARE_FUNCTION>(begin, end, compare_function);
+}
+
+/* 二分查找，要求升序，并且是随机访问容器 */
+/* binary search, for vector, array, deque! */
+/* 返回第一个大于等于x的迭代器 */
+template <typename Iterator, typename = std::enable_if_t<std::is_base_of_v<random_access_iterator_tag, typename Iterator::iterator_category>>>
+Iterator lower_bound(Iterator begin, Iterator end, const typename Iterator::value_type& x){
+    while (begin < end) {
+        auto mid = begin + (end - begin) / 2;
+        if (*mid >= x) {
+            end = mid;
+        }
+        else {
+            begin = mid + 1;
+        }
+    }
+    return begin;
+}
+
+/* 返回第一个大于x的迭代器 */
+template <typename Iterator, typename = std::enable_if_t<std::is_base_of_v<random_access_iterator_tag, typename Iterator::iterator_category>>>
+Iterator upper_bound(Iterator begin, Iterator end, const typename Iterator::value_type& x){
+    while (begin < end) {
+        auto mid = begin + (end - begin) / 2;
+        if (*mid > x) {
+            end = mid;
+        }
+        else {
+            begin = mid + 1;
+        }
+    }
+    return begin;
+}
+
+END_NAMESPACE

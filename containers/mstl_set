@@ -1,50 +1,52 @@
-#include "mstl_global"
-#include "mstl_rbtree"
-#include "mstl_allocator"
-#include "mstl_iterator_base"
+#pragma once
+#include "../core/mstl_common"
+#include "../core/mstl_core_rbtree"
+#include "../allocators/mstl_allocator"
+#include "../iterators/mstl_iterator_base" 
 
 
 NAMESPACE_MSTL
-//TODO:
-namespace map_base{
-template<typename T, typename U, typename COMPARE_FUNCTION, typename Allocator, const bool IS_MULTI>
-class map_impl: public mstl::RedBlackTree<T, U, COMPARE_FUNCTION, Allocator, true, IS_MULTI> {
-    using tree_base = mstl::RedBlackTree<T, U, COMPARE_FUNCTION, Allocator, true, IS_MULTI>;
+//TODO: 是否需要迭代器构造（set同 ）
+namespace set_base{
+template<typename T, typename COMPARE_FUNCTION, typename Allocator, const bool IS_MULTI>
+class set_impl: public mstl::RedBlackTree<T, T, COMPARE_FUNCTION, Allocator, false, IS_MULTI> {
+    using tree_base = mstl::RedBlackTree<T, T, COMPARE_FUNCTION, Allocator, false, IS_MULTI>;
     using node_type = typename tree_base::node_type;
     using node_value_type = typename node_type::value_type;
-    using this_map_type = map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>;
+    using this_set_type = set_impl<T, COMPARE_FUNCTION, Allocator, IS_MULTI>;
 public:
     using value_type = T;
     using pointer = T*;
     using reference = T&;
-    using const_pointer = const T*;
-    using const_reference = const T&;
+    using const_pointer = const T&;
+    using const_reference = const reference;
     using difference_type  =  std::ptrdiff_t;
 
     /* 当前类和迭代器类里都根据 IS_MULTI 定义了一个相同的迭代器类型，保证在erase的时候进行类型检查不会出错 */
     using container_type = typename std::conditional_t<IS_MULTI, 
-        mstl::container_type_base::multimap_iterator, mstl::container_type_base::map_iterator>;
+        mstl::container_type_base::multiset_iterator, mstl::container_type_base::set_iterator>;
 
     /* 构造和析构函数 */
-    map_impl() = default;
-    map_impl(const this_map_type& other) : tree_base(other) {}
-    map_impl(this_map_type&& other) : tree_base(mstl::move(other)) {}
-    map_impl(const std::initializer_list<value_type>& initializer) {
+    set_impl() = default;
+    set_impl(const this_set_type& other) : tree_base(other) {}
+    set_impl(this_set_type&& other) : tree_base(mstl::move(other)) {}
+    set_impl(const std::initializer_list<value_type>& initializer) {
         for (const auto& value : initializer) {
-            insert(value);      //TODO:批量插入策略？？
+            auto t = value;
+            tree_base::insert(value);  //TODO:批量插入策略？？
         }
     }
     template<typename InputIterator, typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename InputIterator::iterator_category>>>
-    map_impl(InputIterator begin, InputIterator end) {
+    set_impl(InputIterator begin, InputIterator end) {
         while (begin != end) {
             insert(*begin);
             begin ++;
         }
     }
-    virtual ~map_impl() override = default;
+    virtual ~set_impl() override = default;
 
-    /* =拷贝 */
-    this_map_type& operator =(const this_map_type& other) {
+    /* =拷贝 */ 
+    this_set_type& operator =(const this_set_type& other) {
         tree_base::destory(tree_base::root_);
         tree_base::current_size_ = other.current_size_;
         tree_base::root_ = tree_base::nil_;
@@ -53,9 +55,10 @@ public:
             new(tree_base::root_) node_type(other.root_->data_, tree_base::nil_);
             tree_base::build(other, tree_base::root_, other.root_);
         }
+        return *this;
     }
     /* =移动语义*/
-    this_map_type& operator =(this_map_type&& other) {
+    this_set_type& operator =(this_set_type&& other) {
         tree_base::destory(tree_base::root_);
         tree_base::nil_->tree_base::~node_type();
         tree_base::allocator_.deallocate(tree_base::nil_);
@@ -67,9 +70,9 @@ public:
         other.root_ = other.nil_;
         other.current_size_ = 0;
     }
-
+    
     /* == 运算符重载 */
-    friend bool operator ==(const this_map_type& lhs, const this_map_type& rhs) {
+    friend bool operator ==(const this_set_type& lhs, const this_set_type& rhs) {
         if (lhs.current_size_ != rhs.current_size_) {
             return false;
         }
@@ -80,34 +83,31 @@ public:
         }
         return true;
     }
-    friend bool operator != (const this_map_type& lhs, const this_map_type& rhs) {
+    friend bool operator != (const this_set_type& lhs, const this_set_type& rhs) {
         return !(lhs == rhs);
     }
-
 
     /* Iterator : 注意！这楼里的value_type是红黑树的node类型，pointer也一样，但是，reference是node里面的data类型!! 并且没有->重载! */
     template<typename ValueType, typename ReferenceType, const bool IS_REVERSE>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, ReferenceType, IS_REVERSE>, ValueType> {
-        friend class map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>; 
-        using map_base_type = map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>;
+        friend class set_impl<T, COMPARE_FUNCTION, Allocator, IS_MULTI>; 
+        using set_base_type = set_impl<T, COMPARE_FUNCTION, Allocator, IS_MULTI>;
         using this_iter_type = iterator_impl<ValueType, ReferenceType, IS_REVERSE>;
     public:
         using value_type         =   ValueType;
         using pointer            =   value_type*;
         using data_reference     =   ReferenceType;
-        using data_pointer       =   typename value_type::pointer;
         using iterator_category  =   mstl::bidirectional_iterator_tag;
-        
+
         /* 该类型用于操作时类型的安全匹配 */
         using container_type          =   typename std::conditional_t<IS_MULTI, 
-            mstl::container_type_base::multimap_iterator, mstl::container_type_base::map_iterator>;
+            mstl::container_type_base::multiset_iterator, mstl::container_type_base::set_iterator>;
         
-        iterator_impl(pointer ptr, map_base_type* map) : ptr_(ptr), parent_map_(map) {}
+        iterator_impl(pointer ptr, set_base_type* set) : ptr_(ptr), parent_set_(set) {}
         ~iterator_impl() override {};
 
         data_reference operator*() { return ptr_->data_; }
-        data_pointer operator->()  { return &(ptr_->data_); }
-
+    
         iterator_impl& operator++() override { 
             if constexpr (IS_REVERSE){
                 find_pre();
@@ -154,31 +154,30 @@ public:
         virtual bool operator!=(const this_iter_type& other) const override{ return !(*this == other); }
         this_iter_type& operator = (const this_iter_type& other) { 
             ptr_ = other.ptr_; 
-            parent_map_ = other.parent_map_; 
+            parent_set_ = other.parent_set_; 
             return *this;
         }
-
     private:
         pointer ptr_;
-        map_base_type* parent_map_; /* 注意这里不能用常量指针，否则会影响各种功能的使用~ */
+        set_base_type* parent_set_; /* 注意这里不能用常量指针，否则会影响各种功能的使用~ */
 
     private:
         /* 找到当前节点的下一个中序遍历节点 */
         void find_next() {
-            if (parent_map_->isNil(ptr_)) { 
+            if (parent_set_->isNil(ptr_)) { 
                 if constexpr (IS_REVERSE) {
-                    ptr_ = parent_map_->left_most();
+                    ptr_ = parent_set_->left_most();
                 }
                 return;
             }
-            if (!parent_map_->isNil(ptr_->right_)) {
+            if (!parent_set_->isNil(ptr_->right_)) {
                 ptr_ = ptr_->right_;
-                while (!parent_map_->isNil(ptr_->left_)) {
+                while (!parent_set_->isNil(ptr_->left_)) {
                     ptr_ = ptr_->left_;
                 }
             }
             else {
-                while (!parent_map_->isNil(ptr_ ->parent_) && ptr_ == ptr_->parent_->right_) {
+                while (!parent_set_->isNil(ptr_ ->parent_) && ptr_ == ptr_->parent_->right_) {
                     ptr_ = ptr_->parent_;
                 }
                 ptr_ = ptr_->parent_;
@@ -187,20 +186,20 @@ public:
 
         /* 找到当前节点的上一个中序遍历节点 */
         void find_pre() {
-            if (parent_map_->isNil(ptr_)) {
+            if (parent_set_->isNil(ptr_)) {
                 if constexpr (!IS_REVERSE){
-                    ptr_ = parent_map_->right_most();
+                    ptr_ = parent_set_->right_most();
                 }
                 return;
             }
-            if (!parent_map_->isNil(ptr_->left_)) {
+            if (!parent_set_->isNil(ptr_->left_)) {
                 ptr_ = ptr_->left_;
-                while (!parent_map_->isNil(ptr_->right_)) {
+                while (!parent_set_->isNil(ptr_->right_)) {
                     ptr_ = ptr_->right_;
                 }
             }
             else {
-                while (!parent_map_->isNil(ptr_->parent_) && ptr_ == ptr_->parent_->left_) {
+                while (!parent_set_->isNil(ptr_->parent_) && ptr_ == ptr_->parent_->left_) {
                     ptr_ = ptr_->parent_;
                 }
                 ptr_ = ptr_->parent_;
@@ -243,8 +242,8 @@ public:
     }
 
     /* 这里第二个模板参数进行了类型检查，确保迭代器不会混用 */
-    template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>>
-    void erase(ITER_TYPE iter) noexcept { 
+    template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
+    void erase(Iterator iter) noexcept { 
         if (iter == end()) {
             return;
         }
@@ -253,21 +252,21 @@ public:
     void erase(const node_value_type& value) noexcept { tree_base::erase_impl(value); }
 };
 
-}/* end map_base namespace */
+}/* end set_base namespace */
 
 
 
-/* map : 相同元素最多只有一个的红黑树，这里跟set的区别是多了一个模板参数U（表示value的类型） */
-template<typename T, typename U, typename COMPARE_FUNCTION = mstl::less<mstl::pair<T, U>>, typename Allocator = mstl::Allocator<mstl::pair<T, U>>>
-class map: public map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, false> {
-    using this_type = map<T, U, COMPARE_FUNCTION, Allocator>;
-    using this_base = map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, true>;
+/* set : 相同元素最多只有一个的红黑树 */
+template<typename T, typename COMPARE_FUNCTION = mstl::less<T>, typename Allocator = mstl::Allocator<T>>
+class set: public set_base::set_impl<T, COMPARE_FUNCTION, Allocator, false> {
+    using this_type = set<T, COMPARE_FUNCTION, Allocator>;
+    using this_base = set_base::set_impl<T, COMPARE_FUNCTION, Allocator, false>;
 public:
-    map() = default;
-    map(const this_type& other): this_base(other) {};
-    map(this_type&& other) : this_base(other){};
-    map(const std::initializer_list<T>& init) :this_base(init){}
-    ~map() = default;
+    set() = default;
+    set(const this_type& other): this_base(other) {};
+    set(this_type&& other) : this_base(other){};
+    set(const std::initializer_list<T>& init) :this_base(init){}
+    ~set() = default;
 
     this_type& operator =(const this_type& other) {
         this_base::operator =(other);
@@ -281,17 +280,17 @@ public:
 
 
 
-/* multimap : 相同元素可以有很多的红黑树 */
-template<typename T, typename U, typename COMPARE_FUNCTION = mstl::less<mstl::pair<T, U>>, typename Allocator = mstl::Allocator<mstl::pair<T, U>>>
-class multimap: public map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, true> {
-    using this_type = map<T, U, COMPARE_FUNCTION, Allocator>;
-    using this_base = map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, true>;
+/* multiset : 相同元素可以有很多的红黑树 */
+template<typename T, typename COMPARE_FUNCTION = mstl::less<T>, typename Allocator = mstl::Allocator<T>>
+class multiset: public set_base::set_impl<T, COMPARE_FUNCTION, Allocator, true> {
+    using this_type = set<T, COMPARE_FUNCTION, Allocator>;
+    using this_base = set_base::set_impl<T, COMPARE_FUNCTION, Allocator, true>;
 public:
-    multimap() = default;
-    multimap(const this_type& other): this_base(other) {};
-    multimap(this_type&& other) : this_base(other){};
-    multimap(const std::initializer_list<T>& init) :this_base(init){}
-    ~multimap() = default;
+    multiset() = default;
+    multiset(const this_type& other): this_base(other) {};
+    multiset(this_type&& other) : this_base(other){};
+    multiset(const std::initializer_list<T>& init) :this_base(init){}
+    ~multiset() = default;
 
     this_type& operator =(const this_type& other) {
         this_base::operator =(other);

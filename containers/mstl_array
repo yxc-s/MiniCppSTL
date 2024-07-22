@@ -1,8 +1,8 @@
 #pragma once
-#include "mstl_global"
-#include "mstl_allocator"
-#include "mstl_memory"
-#include "mstl_iterator_base"
+#include "../core/mstl_common"
+#include "../allocators/mstl_allocator"
+#include "../utility/mstl_memory"
+#include "../iterators/mstl_iterator_base" 
 
 #include <type_traits>       //std::is_trivially_copyable
 

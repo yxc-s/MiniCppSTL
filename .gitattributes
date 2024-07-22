@@ -1,1 +1,7 @@
-* linguist-language=C++
+adapters/* linguist-language=C++
+algorithms/* linguist-language=C++
+allocators/* linguist-language=C++
+containers/* linguist-language=C++
+core/* linguist-language=C++
+iterators/* linguist-language=C++
+utility/* linguist-language=C++

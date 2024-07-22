@@ -1,10 +1,8 @@
 #pragma once
-#include "mstl_global"
-#include "mstl_allocator"
-#include "mstl_memory"
-#include "mstl_iterator_base"
-#include "mstl_utility"    
-
+#include "../core/mstl_common"
+#include "../allocators/mstl_allocator"
+#include "../utility/mstl_memory"
+#include "../iterators/mstl_iterator_base" 
 
 #include <cstring>           //memset, memcpy
 #include <type_traits>       //std::is_trivially_copyable
@@ -66,22 +64,22 @@ public:
     void clear()                                      noexcept { call_all_destructors(); }
     
     /* erase: 接受单个或者一对迭代器（自身的迭代器）TODO:万一是其他vector的迭代器呢？先按未定义行为处理 */
-    template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>>
-    void erase(ITER_TYPE position);
-    template<typename ITER_TYPE, typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>>
-    void erase(ITER_TYPE left, ITER_TYPE right);
+    template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
+    void erase(Iterator position);
+    template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
+    void erase(Iterator left, Iterator right);
 
     /* insert: 接受一个左值或者右值 */
-    template<typename ITER_TYPE, typename U, 
-        typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>,
+    template<typename Iterator, typename U, 
+        typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>,
         typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<U>, value_type>>>
-    void insert(ITER_TYPE position, U&& value);
+    void insert(Iterator position, U&& value);
 
     /* insert: 接受一对迭代器，保证positon为vector迭代器，保证InputIterator是mstl的任何类型容器迭代器 */
-    template<typename ITER_TYPE, typename InputIterator, 
-        typename = std::enable_if_t<std::is_same_v<typename ITER_TYPE::container_type, container_type>>,
+    template<typename Iterator, typename InputIterator, 
+        typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>,
         typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename InputIterator::iterator_category>>>
-    void insert(ITER_TYPE position, InputIterator left, InputIterator right); 
+    void insert(Iterator position, InputIterator left, InputIterator right); 
 
     /* Iterator */
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
@@ -448,8 +446,8 @@ inline bool operator !=(const mstl::vector<T>& lhs, const mstl::vector<T>& rhs){
 }
 
 template<typename T, typename Allocator>
-template<typename ITER_TYPE, typename>
-inline void vector<T, Allocator>::erase(ITER_TYPE position){
+template<typename Iterator, typename>
+inline void vector<T, Allocator>::erase(Iterator position){
     if (position != end()) {
         while ((position) != end()) {
             (*position) = mstl::move(*(position + 1));
@@ -461,8 +459,8 @@ inline void vector<T, Allocator>::erase(ITER_TYPE position){
 }
 
 template<typename T, typename Allocator>
-template<typename ITER_TYPE, typename>
-inline void vector<T, Allocator>::erase(ITER_TYPE left, ITER_TYPE right) {
+template<typename Iterator, typename>
+inline void vector<T, Allocator>::erase(Iterator left, Iterator right) {
     size_type remove_size = (right - left);
     while (right != end()) {
         (*left) = mstl::move(*right);
@@ -478,8 +476,8 @@ inline void vector<T, Allocator>::erase(ITER_TYPE left, ITER_TYPE right) {
 
 /* insert: 接受一个左值或者右值 */
 template<typename T, typename Allocator>
-template<typename ITER_TYPE, typename U, typename, typename>
-inline void vector<T, Allocator>::insert(ITER_TYPE position, U&& value){
+template<typename Iterator, typename U, typename, typename>
+inline void vector<T, Allocator>::insert(Iterator position, U&& value){
     if (current_size_ == capacity_) {
         size_type d = position - begin();  /* 非常重要! 内存重新分配后之前迭代器全都失效 ~ */
         this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
@@ -495,8 +493,8 @@ inline void vector<T, Allocator>::insert(ITER_TYPE position, U&& value){
 
 /* insert: 接受一对迭代器 */
 template<typename T, typename Allocator>
-template<typename ITER_TYPE, typename InputIterator, typename, typename>
-inline void vector<T, Allocator>::insert(ITER_TYPE position, InputIterator left, InputIterator right){
+template<typename Iterator, typename InputIterator, typename, typename>
+inline void vector<T, Allocator>::insert(Iterator position, InputIterator left, InputIterator right){
     //size_type num_new_elements = ..如果是红黑树呢？没有distance啊，不过这里保证left是right前面的迭代器，也可以
     size_type num_new_elements = 0;
     if constexpr (std::is_same_v<typename InputIterator::iterator_category, mstl::random_access_iterator_tag>) {

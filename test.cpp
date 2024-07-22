@@ -1,24 +1,23 @@
-#include <iostream>
-#include "mstl_vector"
-#include "mstl_array"
+#include "containers/mstl_vector"
+#include "containers/mstl_array"
+#include "utility/mstl_pair"
+#include "algorithms/mstl_algorithm"
+#include "containers/mstl_deque"
+#include "containers/mstl_set"
+#include "containers/mstl_map"
+#include "adapters/mstl_stack"
+#include "adapters/mstl_queue"
+#include "containers/mstl_list"
 
-#include "mstl_pair"
-#include "mstl_algorithm"
-#include "mstl_deque"
+
 #include <bits/stdc++.h>
-#include "mstl_set"
-#include "mstl_map"
-#include "mstl_stack"
-#include "mstl_queue"
-#include "mstl_list"
-
 using namespace std;
 
 
 int main(){
 
     //vector
-#if 0
+#if 1
 {
     mstl::vector<int> my_vec_a(10, -1);
     mstl::vector<int> my_vec_b(10, -1);
@@ -124,7 +123,7 @@ int main(){
 
 
 //array
-#if 0
+#if 1
 {
     mstl::array<int, 23> t {1,2,3};
    // t[0] = 5;
@@ -152,14 +151,14 @@ int main(){
 #endif
 
 //pair
-#if 0
+#if 1
 {
     mstl::pair<int, int> a_p{2, 2};
     mstl::pair<int, int> ba_p{2, 2};
     cout << ( a_p <= ba_p);
 }
 #endif
-#if 0
+#if 1
     {
         mstl::vector<int> a((int)1e5);
         int t = 1;
@@ -174,7 +173,7 @@ int main(){
 #endif
 
 //deque
-#if 0
+#if 1
     {
         mstl::deque<int> a{1,2,3,4,5};
         //cout << a.size() << endl;
@@ -264,7 +263,7 @@ int main(){
 
 
 //红黑树测试，好像测试不了，得先继承才行。。
-#if 0
+#if 1
     {   
         mstl::multiset<int> s;
         s.insert(2);
@@ -322,7 +321,7 @@ int main(){
     }
 #endif
 
-#if 0
+#if 1
     {
         mstl::map<int, int> mapp;
         mapp.insert(mstl::pair{2, 3});
@@ -368,7 +367,7 @@ int main(){
 
 //stack
 
-#if 0
+#if 1
     {
         mstl::stack<int> a{2,3,4,5,61};
         cout << a.size() << endl;

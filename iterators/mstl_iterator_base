@@ -1,10 +1,22 @@
 #pragma once
 
-#include "mstl_global"
+#include "../core/mstl_common"
 
 #include <cstddef>  // for std::ptrdiff_t
 
 NAMESPACE_MSTL
+
+namespace container_type_base{
+struct _vector_{};
+struct _array_{};
+struct _deque_{};
+struct _list_{};
+struct set_iterator{};
+struct multiset_iterator{};
+struct map_iterator{};
+struct multimap_iterator{};
+}
+
 
 
 /* 奇异递归模板模式(Curiously Recurring Template Pattern) */
