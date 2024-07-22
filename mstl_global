@@ -57,6 +57,7 @@ namespace container_type_base{
 struct _vector_{};
 struct _array_{};
 struct _deque_{};
+struct _list_{};
 struct set_iterator{};
 struct multiset_iterator{};
 struct map_iterator{};

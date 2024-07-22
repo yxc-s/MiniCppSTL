@@ -1,0 +1,293 @@
+#pragma once
+#include "mstl_global"
+#include "mstl_allocator"
+#include "mstl_iterator_base"
+
+NAMESPACE_MSTL
+
+
+template<typename T>
+struct node{
+    using this_node_type = node<T>;
+    T* data_;
+    this_node_type* pre_node_;
+    this_node_type* next_node_;
+};
+
+template<typename T, typename Allocator = mstl::Allocator<node<T>>>
+class list{
+    using this_list_type = list<T, Allocator>;
+    using node_allocator_type = Allocator;
+    using node_value_allocator_type = typename Allocator::template rebind<T>::other;
+    using node_type = node<T>;
+    using node_value_type = T;
+public:
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
+    using const_pointer = const T*;
+    using const_reference = const T&;
+    using size_type = mstl::size_t;
+
+    using container_type = mstl::container_type_base::_list_;
+
+    /* 构造和析构函数 */
+    list();
+    list(const this_list_type& other);
+    list(this_list_type&& other);
+    list(const std::initializer_list<T>& init);
+    template<typename ITER, typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename ITER::iterator_category>>>
+    list(ITER left, ITER rigt);
+    ~list();
+
+
+    /* insert: 迭代器类型被严格限制 */
+    template<typename ITER, typename = std::enable_if_t<std::is_same_v<typename ITER::container_type, container_type>>>
+    void insert(ITER pos, const value_type& value);
+    template<typename ITER, typename = std::enable_if_t<std::is_same_v<typename ITER::container_type, container_type>>>
+    void insert(ITER pos, value_type&& value);
+
+    /* insert: 迭代器类型被严格限制*/
+    template<typename ITER, typename = std::enable_if_t<std::is_same_v<typename ITER::container_type, container_type>>>
+    void erase(ITER pos);
+
+    //形参应该怎么写呢？默认less<T>?
+    void sort(const mstl::less<value_type>& compare = mstl::less<value_type>());
+    void reverse();
+
+    /* 一些小函数 */
+    void empty() const noexcept;
+    void clear();
+    size_type size()const noexcept;
+    reference front();
+    const_reference front() const;
+    reference back();
+    const_reference back() const;
+
+    template<typename U>
+    friend bool operator ==(const list<U>& lhs, const list<U>& rhs);
+    template<typename U>
+    friend bool operator !=(const list<U>& lhs, const list<U>& rhs);
+
+
+    bool operator ==(const this_list_type& other);
+    this_list_type& operator =(const this_list_type& other);
+    this_list_type& operator =(this_list_type&& other);
+
+
+    /* iterator : 类似这种节点里面包装了一层数据的，迭代器的指针成员都是节点类型指针！ 但是迭代器的重载返回的是节点里的数据类型！ */
+    template<typename ValueType, typename PointerType, typename ReferenceType, const bool IS_REVERSE = false>
+    class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
+        using this_iter_type = iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>;
+    public:
+        using node_type             =   ValueType;
+        using node_pointer          =   ValueType*;
+        using node_value_pointer    =   PointerType;
+        using node_value_reference  =   ReferenceType;
+        using iterator_category     =   mstl::bidirectional_iterator_tag;
+        
+        using container_type = mstl::container_type_base::_list_;
+
+        iterator_impl(node_pointer ptr, mstl::list<T, Allocator>* ls) : ptr_(ptr), list_(ls) {}
+
+        node_value_reference operator*() const { return *(ptr_->data_); }
+        node_value_pointer operator->()  { return (ptr_->data_); }  /* 代表了T*的指针 */
+
+        iterator_impl& operator++() override { 
+            if constexpr (IS_REVERSE){
+                ptr_ = ptr_->pre_node_;
+            }
+            else{
+                ptr_ = ptr_->next_node_;
+            }
+            return *this; 
+        }
+        iterator_impl operator++(int) override { 
+            iterator_impl new_iter = *this; 
+            if constexpr (IS_REVERSE){
+                --(*this);
+            }
+            else{
+                ++(*this); 
+            }
+            return new_iter; 
+        }
+
+        //TODO: 这样设计是否有问题？比如正向迭代器到达head_？逆向迭代器到达end_？
+        //好像没关系，begin的--操作应该是未定义行为，所以不用考虑它，能不能+回去，看运气
+        iterator_impl& operator--() override { 
+            if constexpr (IS_REVERSE){
+                // if (list_->ptr_ == head_) { /* 逆向迭代器，并且到达了head节点 */
+                //     ptr_ = list_->head_->next_node_; 
+                //     return *this;
+                // }
+                ptr_ = ptr_->next_node_;
+            }
+            else{/* 这里不需要加特判，只要在操纵节点时让end的pre_node_ = 最后一个节点即可 */
+                ptr_ = ptr_->pre_node_;
+            }
+            return *this; 
+        }
+        
+        iterator_impl operator--(int) override { 
+            iterator_impl new_iter = *this;
+            if constexpr (IS_REVERSE) {
+                ++(*this);
+            } else {
+                --(*this);
+            }
+            return new_iter; 
+        }
+
+        virtual bool operator==(const this_iter_type& other) const override { return ptr_ == other.ptr_; }
+        virtual bool operator!=(const this_iter_type& other) const override { return !(*this == other); }
+        this_iter_type& operator =(const this_iter_type& other) {
+            if (this != &other) {
+                ptr_ = other.ptr_;
+                list_ = other.list_;
+            }
+            return *this;
+        }
+
+    private:
+        node_pointer ptr_;
+        mstl::list<T, Allocator>* list_;
+    };
+
+    /* 四种迭代器类型 */
+    using iterator = iterator_impl<node_type, pointer, reference, false>;
+    using const_iterator = iterator_impl<const node_type, const_pointer, const_reference, false>;
+    using reverse_iterator = iterator_impl<node_type, pointer, reference, true>;
+    using const_reverse_iterator = iterator_impl<const node_type, const_pointer, const_reference, true>;
+
+    /* 将各种迭代器的类型声明为友元类，方便后续迭代器通过list查看是否到达end*/
+    friend class iterator_impl<node_type, pointer, reference, false>;
+    friend class iterator_impl<const node_type, const_pointer, const_reference, false>;
+    friend class iterator_impl<node_type, pointer, reference, true>;
+    friend class iterator_impl<const node_type, const_pointer, const_reference, true>;
+
+    /* 正向迭代器相关函数 */
+    iterator begin() { return iterator(head_->next_node_, this); }
+    iterator end()   { return iterator(end_, this); }
+    const_iterator cbegin() { return const_iterator(head_->next_node_, this); } 
+    const_iterator cend() { return const_iterator(end_, this); }
+
+    /* 逆向迭代器相关函数 */
+    reverse_iterator rbegin() { return reverse_iterator(end_->pre_node_, this); }
+    reverse_iterator rend() { return reverse_iterator(head_, this); }
+    const_reverse_iterator crbegin() { return const_reverse_iterator(end_->pre_node_, this); }
+    const_reverse_iterator crend() { return const_reverse_iterator(head_, this); }
+
+private:
+    node_type* head_;
+    node_type* end_;
+    node_allocator_type node_allocator_;
+    node_value_allocator_type node_value_allocator_;
+
+private:
+    bool is_end(const node_type* node) const noexcept {
+        return static_cast<bool>(node == end_);
+    }
+
+    /* 删除所有节点，保留头节点 */
+    void remove_all_nodes(){
+        while (!is_end(head_->next_node_)) { //
+            node_type* temp = head_->next_node_; //end?
+            head_->next_node_ = temp->next_node_;
+            temp->data_->~node_value_type();
+            node_value_allocator_.deallocate(temp->data_, 1);
+            node_allocator_.deallocate(temp, 1);
+        }
+    }
+};
+
+
+
+/* 默认构造函数 */
+template<typename T, typename Allocator>
+list<T, Allocator>::list() : head_(node_allocator_.allocate(1)), end_(node_allocator_.allocate(1)){
+    head_->next_node_ = end_;
+    end_->pre_node_ = head_;
+}
+
+/* 拷贝构造 */
+template<typename T, typename Allocator>
+list<T, Allocator>::list(const this_list_type& other) : list() {
+    node_type* pre = head_;
+    for (auto it = other.begin(); it != other.end(); ++it) {
+        node_type* temp = node_allocator_.allocate(1);
+        temp->data_ = node_value_allocator_.allocate(1);
+        new (temp->data_) node_value_type(*it);
+        pre->next_node_ = temp;
+        temp->pre_node_ = pre;
+        pre = temp;
+    }
+    pre->next_node_ = end_;
+    end_->pre_node_ = pre;
+}
+
+/* 移动构造 */
+template<typename T, typename Allocator>
+list<T, Allocator>::list(this_list_type&& other) : list(){
+    node_type* cur = head_;
+    if (!other.is_end(other.head_->next_node_)){
+        node_type* it = other.head_->next_node_;
+        cur->next_node_ = it;
+        it->pre_node_ = head_;
+        cur = it;
+    }
+    cur->next_node_ = end_;
+    end_->pre_node_ = cur;
+    other.head_->next_node_ = other.end_; 
+    other.end_->pre_node_ = other->head_;
+}
+
+/* 初始化列表构造 */
+template<typename T, typename Allocator>
+list<T, Allocator>::list(const std::initializer_list<T>& init) :list(){
+    node_type* cur = head_;
+    for (auto it = init.begin(); it != init.end(); ++it) {
+        node_type* temp = node_allocator_.allocate(1);
+        temp->data_ = node_value_allocator_.allocate(1);
+        new (temp->data_) node_value_type(*(it));
+        cur->next_node_ = temp;
+        temp->pre_node_ = cur;
+        cur = temp;
+    }
+    cur->next_node_ = end_;
+    end_->pre_node_ = cur;
+}
+
+/* 迭代器构造 */
+template<typename T, typename Allocator>
+template<typename ITER, typename>
+list<T, Allocator>::list(ITER left, ITER right) : list() {
+    node_type* cur = head_;
+    while (left != right){
+        node_type* temp = node_allocator_.allocate(1);
+        temp->data_ = node_value_allocator_.allocate(1);
+        new (temp->data_) node_value_type(*left);
+        cur->next_node_ = temp;
+        temp->pre_node_ = cur;
+        cur = temp;
+        left ++;
+    }
+    cur->next_node_ = end_;
+    end_->pre_node_ = cur;
+}
+
+/* 析构函数 */
+template<typename T, typename Allocator>
+list<T, Allocator>::~list() {
+    remove_all_nodes();
+   // head_->data_->~node_value_type();
+    // node_value_allocator_.deallocate(head_->data_, 1);  //没申请内存
+     node_allocator_.deallocate(head_, 1);//没申请内存
+    // end_->data_->~node_value_type();    ////没申请内存
+    // node_value_allocator_.deallocate(end_->data_, 1);//没申请内存
+    node_allocator_.deallocate(end_, 1);
+}
+
+
+
+END_NAMESPACE
