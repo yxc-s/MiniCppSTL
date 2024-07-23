@@ -11,6 +11,7 @@ NAMESPACE_MSTL
 
 template<typename T, typename Container = mstl::deque<T, mstl::Allocator<T>, 512, 0>>
 class stack{
+    using container_type = Container;
     using this_stack_type = stack<T, Container>;
 public:
     using value_type       =  T;
@@ -22,7 +23,7 @@ public:
     stack() = default;
 
     /* 拷贝构造函数 */
-    stack(const this_stack_type& other): cotainer_(other.container_) {}
+    stack(const this_stack_type& other): container_(other.container_) {}
 
     /* 移动构造函数 */
     stack (this_stack_type&& other) noexcept : container_(mstl::move(other.container_)) {}
