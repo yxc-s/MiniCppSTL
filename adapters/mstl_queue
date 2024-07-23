@@ -1,3 +1,4 @@
+#pragma once
 #include "../core/mstl_common"
 #include "../containers/mstl_deque"
 #include "../containers/mstl_vector"
@@ -5,43 +6,52 @@
 
 NAMESPACE_MSTL
 
-/* TODO: */
+/* 其实queue底层也可以用vector，但是代价太高 */
 template<typename T>
 class queue{
     using container_type = mstl::deque<T, mstl::Allocator<T>>;
     using this_queue_type = queue<T>;
 public:
-    using value_type = T;
-    using reference = T&;
-    using const_reference = const T&;
-    using size_type = typename container_type::size_type;
+    using value_type       =  T;
+    using reference        =  T&;
+    using const_reference  =  const T&;
+    using size_type        =  typename container_type::size_type;
 
+    /* 默认构造函数 */
     queue() = default;
 
-    queue(const this_queue_type& other) = default;
+    /* 拷贝构造函数 */
+    queue(const this_queue_type& other): container_(other.container_){}
     
-    queue (this_queue_type&& other) : container_(mstl::move(other.container_)) {}
+    /* 移动构造函数 */
+    queue (this_queue_type&& other) noexcept : container_(mstl::move(other.container_)) {}
 
+    /* 初始化列表构造函数 */
     queue(const std::initializer_list<T>& init) {
         for (const auto& value : init) {
             container_.push_back(value);
         }
     }
 
+    /* 析构函数 */
     ~queue() = default;
 
+    /* push元素到队尾 */
     template<typename U, typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<U>, T>>>
     void push(U&& value) {
         container_.push_back(mstl::forward<U>(value));
     }
 
+    /* 弹出队头元素 */
     void pop(){
         container_.pop_front();
     }
 
+    /* 返回队头元素 */
     reference front() { return container_.front(); }
     const_reference front() const { return container_.front(); }
 
+    /* =拷贝赋值 */
     this_queue_type& operator =(const this_queue_type& other) {
         if (this != &other) {
             container_ = other.container_;
@@ -49,6 +59,7 @@ public:
         return *this;
     }
 
+    /* =移动赋值 */
     this_queue_type& operator =(this_queue_type&& other) noexcept {
         if (this != &other) {
             container_ = mstl::move(other.container_);
@@ -56,30 +67,28 @@ public:
         return *this;
     }
     
+    /* 基本函数 */
     size_type size() const { return container_.size(); }
     size_type capacity() const { return container_.capacity(); }
     bool empty() const { return container_.empty(); }
 
+    /* 友元函数声明 */
     template<typename U>
     friend bool operator ==(const mstl::queue<U>& lhs, const mstl::queue<U>& rhs);
-
     template<typename U>
     friend bool operator !=(const mstl::queue<U>& lhs, const mstl::queue<U>& rhs);
 
 private:
     container_type container_;
-
-
 };
 
-
+/* 友元比较函数定义 */
 template<typename U>
-bool operator ==(const mstl::queue<U>& lhs, const mstl::queue<U>& rhs) {
+inline bool operator ==(const mstl::queue<U>& lhs, const mstl::queue<U>& rhs) {
     return lhs.container_ == rhs.container_;
 }
-
 template<typename U>
-bool operator !=(const mstl::queue<U>& lhs, const mstl::queue<U>& rhs) {
+inline bool operator !=(const mstl::queue<U>& lhs, const mstl::queue<U>& rhs) {
     return !(lhs == rhs);
 }
 
