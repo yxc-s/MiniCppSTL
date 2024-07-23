@@ -160,7 +160,7 @@ int main(){
 #endif
 #if 1
     {
-        mstl::vector<int> a((int)1e5);
+        mstl::vector<int> a((int)1e2);
         int t = 1;
         for (auto it = a.rbegin(); it != a.rend(); ++it){
             *it = t++;
@@ -401,6 +401,46 @@ int main(){
                 cout << x << ' ';
             }
             cout << endl;
+        }
+        {
+            cout << "list insert & erase test\n";
+            mstl::list<int> a{2,3,4,5,6};
+            a.insert((a.begin()), 1);
+            for (auto t : a) {
+                cout << t << ' ';
+            }
+            cout << endl;
+            mstl::multiset<int>s{8,8,8,8,8};
+            a.insert(a.end(), s.begin(), s.end());
+            for (auto t : a) {
+                cout << t << ' ';
+            }
+            cout << endl;
+            a.erase(a.begin());
+            for (auto t : a) {
+                cout << t << ' ';
+            }
+            cout << endl;
+            a.erase(a.begin(), --a.end());
+            for (auto t : a) {
+                cout << t << ' ';
+            }
+            cout << endl;
+            mstl::list<int> b{a.begin(), a.end()};
+            cout << (b == a ? "YES" : "NO") << endl;
+        }
+        {
+            mstl::vector<int> b{1,1,1};
+            mstl::list<int> a{2,3,4};
+            a.insert(a.begin(), b.begin(), b.end());
+            for (auto t : a){ cout << t << ' ';} cout << endl;
+            a.reverse();
+            for (auto t : a){ cout << t << ' ';} cout << endl;
+            for (auto t : a){ cout << t << ' ';} cout << endl;
+            a.sort([](const int& a, const int& b) {
+                return a >  b;
+            });
+            for (auto t : a){ cout << t << ' ';} cout << endl;
         }
 
     }

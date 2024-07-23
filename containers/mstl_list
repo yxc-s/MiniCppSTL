@@ -41,36 +41,42 @@ public:
     ~list();
 
 
-    /* insert: 迭代器类型被严格限制 */
+    /* insert: 迭代器类型被严格限制. 注意:迭代器的位置表示在这个位置之前进行插入 */
     template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
     void insert(Iterator pos, const value_type& value);
     template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
     void insert(Iterator pos, value_type&& value);
+    template<typename Iterator, typename InputIterator, 
+        typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>, 
+        typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename InputIterator::iterator_category>>>
+    void insert(Iterator pos, InputIterator left, InputIterator right);
 
-    /* insert: 迭代器类型被严格限制*/
+    /* insert: 迭代器类型被严格限制 */
     template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
     void erase(Iterator pos);
+    template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
+    void erase(Iterator left, Iterator right);
 
-    //形参应该怎么写呢？默认less<T>?
-    void sort(const mstl::less<value_type>& compare = mstl::less<value_type>());
+    /* 排序和翻转, 感觉是刷leetcode小伙伴必备的基础算法题啊 */
+    template<typename Compare = mstl::less<value_type>>
+    void sort(const Compare& compare = Compare());
     void reverse();
 
     /* 一些小函数 */
-    void empty() const noexcept;
-    void clear();
-    size_type size()const noexcept;
-    reference front();
-    const_reference front() const;
-    reference back();
-    const_reference back() const;
+    bool empty() const noexcept    { return static_cast<bool> (current_size_ > 0); }
+    void clear()                   { remove_all_nodes(); }
+    size_type size()const noexcept { return current_size_; }
+    reference front()              { return *begin();}
+    const_reference front() const  { return *cbegin();}
+    reference back()               { return *rbegin(); }
+    const_reference back() const   { return *crbegin(); }
 
     template<typename U>
-    friend bool operator ==(const list<U>& lhs, const list<U>& rhs);
+    friend bool operator ==(const mstl::list<U>& lhs, const mstl::list<U>& rhs);
     template<typename U>
-    friend bool operator !=(const list<U>& lhs, const list<U>& rhs);
+    friend bool operator !=(const mstl::list<U>& lhs, const mstl::list<U>& rhs);
 
 
-    bool operator ==(const this_list_type& other);
     this_list_type& operator =(const this_list_type& other);
     this_list_type& operator =(this_list_type&& other);
 
@@ -79,6 +85,7 @@ public:
     template<typename ValueType, typename PointerType, typename ReferenceType, const bool IS_REVERSE = false>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
         using this_iter_type = iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>;
+        friend class mstl::list<T, Allocator>;
     public:
         using node_type             =   ValueType;
         using node_pointer          =   ValueType*;
@@ -183,21 +190,29 @@ private:
     node_type* end_;
     node_allocator_type node_allocator_;
     node_value_allocator_type node_value_allocator_;
+    size_type  current_size_;
 
 private:
     bool is_end(const node_type* node) const noexcept {
         return static_cast<bool>(node == end_);
     }
 
+    /* 析构并释放node中的data，析构并释放当前node */
+    void release_node(node_type* node) {
+        node->data_->~node_value_type();
+        node_value_allocator_.deallocate(node->data_, 1);
+        node->~node_type();
+        node_allocator_.deallocate(node, 1);
+    }
+
     /* 删除所有节点，保留头节点 */
     void remove_all_nodes(){
-        while (!is_end(head_->next_node_)) { //
-            node_type* temp = head_->next_node_; //end?
+        while (!is_end(head_->next_node_)) {
+            node_type* temp = head_->next_node_;
             head_->next_node_ = temp->next_node_;
-            temp->data_->~node_value_type();
-            node_value_allocator_.deallocate(temp->data_, 1);
-            node_allocator_.deallocate(temp, 1);
+            release_node(temp);
         }
+        current_size_ = 0;
     }
 };
 
@@ -205,7 +220,9 @@ private:
 
 /* 默认构造函数 */
 template<typename T, typename Allocator>
-list<T, Allocator>::list() : head_(node_allocator_.allocate(1)), end_(node_allocator_.allocate(1)){
+list<T, Allocator>::list() : head_(node_allocator_.allocate(1)), end_(node_allocator_.allocate(1)), current_size_(0){
+    new(head_) node_type();
+    new(end_) node_type();
     head_->next_node_ = end_;
     end_->pre_node_ = head_;
 }
@@ -224,6 +241,7 @@ list<T, Allocator>::list(const this_list_type& other) : list() {
     }
     pre->next_node_ = end_;
     end_->pre_node_ = pre;
+    current_size_ = other.current_size_;
 }
 
 /* 移动构造 */
@@ -240,6 +258,7 @@ list<T, Allocator>::list(this_list_type&& other) : list(){
     end_->pre_node_ = cur;
     other.head_->next_node_ = other.end_; 
     other.end_->pre_node_ = other->head_;
+    current_size_ = other.current_size_;
 }
 
 /* 初始化列表构造 */
@@ -248,6 +267,7 @@ list<T, Allocator>::list(const std::initializer_list<T>& init) :list(){
     node_type* cur = head_;
     for (auto it = init.begin(); it != init.end(); ++it) {
         node_type* temp = node_allocator_.allocate(1);
+        new(temp) node_type();
         temp->data_ = node_value_allocator_.allocate(1);
         new (temp->data_) node_value_type(*(it));
         cur->next_node_ = temp;
@@ -256,6 +276,7 @@ list<T, Allocator>::list(const std::initializer_list<T>& init) :list(){
     }
     cur->next_node_ = end_;
     end_->pre_node_ = cur;
+    current_size_ = init.size();
 }
 
 /* 迭代器构造 */
@@ -271,6 +292,7 @@ list<T, Allocator>::list(Iterator left, Iterator right) : list() {
         temp->pre_node_ = cur;
         cur = temp;
         left ++;
+        current_size_ ++;
     }
     cur->next_node_ = end_;
     end_->pre_node_ = cur;
@@ -282,12 +304,211 @@ list<T, Allocator>::~list() {
     remove_all_nodes();
    // head_->data_->~node_value_type();
     // node_value_allocator_.deallocate(head_->data_, 1);  //没申请内存
-     node_allocator_.deallocate(head_, 1);//没申请内存
+    head_->~node_type();
+    node_allocator_.deallocate(head_, 1);//没申请内存
     // end_->data_->~node_value_type();    ////没申请内存
     // node_value_allocator_.deallocate(end_->data_, 1);//没申请内存
+    end_->~node_type();
     node_allocator_.deallocate(end_, 1);
 }
 
 
+
+/* insert: 迭代器类型被严格限制 */
+template<typename T, typename Allocator>
+template<typename Iterator, typename>
+void list<T, Allocator>::insert(Iterator pos, const value_type& value) {
+    node_type* new_node = node_allocator_.allocate(1);
+    new(new_node) node_type();
+    new_node->data_ = node_value_allocator_.allocate(1);
+    new(new_node->data_) node_value_type(value);
+    new_node->next_node_ = (pos.ptr_);
+    new_node->pre_node_ = (pos.ptr_->pre_node_);
+    pos.ptr_->pre_node_->next_node_ = new_node;
+    pos.ptr_->pre_node_ = new_node;
+    current_size_ ++;
+}
+
+/* insert插入右值 */
+template<typename T, typename Allocator>
+template<typename Iterator, typename>
+void list<T, Allocator>::insert(Iterator pos, value_type&& value) {
+    node_type* new_node = node_allocator_.allocate(1);
+    new(new_node) node_type();
+    new_node->data_ = node_value_allocator_.allocate(1);
+    new(new_node->data_) node_value_type(mstl::move(value));
+    new_node->next_node_ = (pos.ptr_);
+    new_node->pre_node_ = (pos.ptr_->pre_node_);
+    pos.ptr_->pre_node_->next_node_ = new_node;
+    pos.ptr_->pre_node_ = new_node;
+    current_size_ ++;
+}
+
+/* insert插入一组迭代器元素（可以是mstl中任何容器类型），需要用户自己保证left不在right右边  */
+template<typename T, typename Allocator>
+template<typename Iterator, typename InputIterator, typename, typename>
+void list<T, Allocator>::insert(Iterator pos, InputIterator left, InputIterator right){
+    node_type* cur = pos.ptr_;
+    cur = cur->pre_node_;
+    while (left != right) {
+        node_type* new_node = node_allocator_.allocate(1);
+        new(new_node) node_type();
+        new_node->data_ = node_value_allocator_.allocate(1);
+        new(new_node->data_) node_value_type(*left);
+        left ++;
+        new_node->next_node_ = cur->next_node_;
+        new_node->pre_node_ = cur;
+        cur->next_node_->pre_node_ = new_node;
+        cur->next_node_ = new_node;
+        cur = new_node;
+        current_size_ ++;
+    }
+}
+
+
+/* erase: 迭代器类型被严格限制*/
+template<typename T, typename Allocator>
+template<typename Iterator, typename>
+void list<T, Allocator>::erase(Iterator pos) {
+    node_type* node = pos.ptr_;
+    node->pre_node_->next_node_ = node->next_node_;
+    node->next_node_->pre_node_ = node->pre_node_;
+    release_node(node);
+    current_size_ --;
+}
+
+/* erase: 迭代器类型被严格限制， 删除迭代器范围内的一组节点 */
+template<typename T, typename Allocator>
+template<typename Iterator, typename>
+void list<T, Allocator>::erase(Iterator left, Iterator right) {
+    node_type* node = left.ptr_->pre_node_;
+    node->next_node_ = right.ptr_;
+    right.ptr_->pre_node_ = node;
+    while (left != right) {
+        node_type* del_node = left.ptr_;  /* 先把指针取出来很有必要 */
+        left ++;
+        release_node(del_node);
+        current_size_ --;
+    }
+}
+
+/* ==友元重载 */
+template<typename U>
+bool operator ==(const mstl::list<U>& lhs, const mstl::list<U>& rhs) {
+    if (lhs.current_size_ != rhs.current_size_) {
+        return false;
+    }
+    if (lhs.head_ == rhs.head_) {
+        return true;
+    }
+    typename mstl::list<U>::node_type* lnode = lhs.head_->next_node_;
+    typename mstl::list<U>::node_type* rnode = rhs.head_->next_node_;
+    while (!lhs.is_end(lnode)) {
+        /* 注意: 这里的data 仍然是指针! 要解引用 */
+        if (*(lnode->data_) != *(rnode->data_)) {
+            return false;
+        }
+        lnode = lnode->next_node_;
+        rnode = rnode->next_node_;
+    }
+    return true;
+}
+template<typename U>
+bool operator !=(const mstl::list<U>& lhs, const mstl::list<U>& rhs) {
+    return !(lhs == rhs);
+}
+
+
+/* list的专属sort， 采用归并排序 */
+template<typename T, typename Allocator>
+template<typename Compare>
+void list<T, Allocator>::sort(const Compare& compare) {
+    if (current_size_ < 2) {
+        return;
+    }
+    auto merge_sort = [&, this](auto&& self, node_type* l, node_type* r) ->node_type*{
+        if (l != r) {
+             /* 该条件保证后面的slow一定会在r左边，并且区间长度为2的时候，直接交换数据指针 */
+            if (l->next_node_ == r) {
+                if (compare(*(r->data_), *(l->data_))) {
+                    mstl::swap(r->data_, l->data_);
+                }
+                r->next_node_ = nullptr;
+                return l;
+            }
+            node_type* fast = l;
+            node_type* slow = l;
+            while (fast != r) {
+                fast = fast->next_node_;
+                slow = slow->next_node_;
+                if (fast == r) {
+                    break;
+                }
+                fast = fast->next_node_;
+            }
+            node_type* temp = slow->next_node_;
+            node_type* a = self(self, l, slow);
+            node_type* b = self(self, temp, r);
+            /* 合并两个有序链表 */
+            node_type* cur = compare(*(a->data_), *(b->data_)) ? a : b;
+            node_type* res = cur;
+            if (cur == a) {
+                a = a->next_node_;
+            }
+            else {
+                b = b->next_node_;
+            }
+            while (a && b) {
+                if (compare(*(a->data_), *(b->data_))) {
+                    cur->next_node_ = a;
+                    a = a->next_node_;
+                }
+                else{
+                    cur->next_node_ = b;
+                    b = b->next_node_;
+                }
+                cur = cur->next_node_;
+            }
+            while (a) {
+                cur->next_node_ = a;
+                a = a->next_node_;
+                cur = cur->next_node_;
+            }
+            while (b) {
+                cur->next_node_ = b;
+                b = b->next_node_;
+                cur = cur->next_node_;
+            }
+            cur->next_node_ = nullptr;
+            return res;
+        }
+        l->next_node_ = nullptr;
+        return l;
+    };
+
+    head_->next_node_ = merge_sort(merge_sort, head_->next_node_, end_->pre_node_);
+    head_->next_node_->pre_node_ = head_;
+    node_type* last = head_->next_node_;
+    node_type* pre = head_;
+    while (last->next_node_) {
+        last->pre_node_ = pre;
+        pre = last;
+        last = last->next_node_;
+    }
+    last->next_node_ = end_;
+    end_->pre_node_ = last;
+}
+
+template<typename T, typename Allocator>
+void list<T, Allocator>::reverse() {
+    node_type* cur = head_->next_node_;
+    mstl::swap(head_->pre_node_, head_->next_node_);
+    do {
+        mstl::swap(cur->pre_node_, cur->next_node_);
+        cur = cur->pre_node_;
+    }while (!is_end(cur));
+    mstl::swap(end_->next_node_, end_->pre_node_);
+    mstl::swap(head_, end_);
+}
 
 END_NAMESPACE
