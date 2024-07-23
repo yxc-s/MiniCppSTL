@@ -1,5 +1,4 @@
 #pragma once
-
 #include "../core/mstl_common"
 #include "../containers/mstl_vector"
 #include "../core/mstl_core_sort"
@@ -13,19 +12,20 @@ TODO
 
 
 /* 返回小值 return minimum value */
-template <typename T>
+template<typename T>
 inline T min(const T& lhs, const T& rhs){
     return lhs <= rhs ? lhs : rhs;
 }
 
 /* 返回大值 return maximum value */
-template <typename T>
+template<typename T>
 inline T max(const T& lhs, const T& rhs){
     return lhs >= rhs ? lhs : rhs;
 }
 
+
 /* 返回数值最小的迭代器 return iterator with minimum value */
-template <typename Iterator>
+template<typename Iterator>
 Iterator min_element(Iterator begin, const Iterator& end){
     if (begin == end) {
         return begin;
@@ -40,9 +40,8 @@ Iterator min_element(Iterator begin, const Iterator& end){
     return res;
 }
 
-
 /* 返回数值最大的迭代器 return iterator with maximum value */
-template <typename Iterator>
+template<typename Iterator>
 Iterator max_element(Iterator begin, const Iterator& end){
     if (begin == end) {
         return begin;
@@ -57,6 +56,18 @@ Iterator max_element(Iterator begin, const Iterator& end){
     return res;
 }
 
+/* min函数升级版，接受初始化列表查询 */
+template<typename T>
+inline T min(const std::initializer_list<T>& ls) {
+    return *mstl::min_element(ls.begin(), ls.end());
+}
+
+/* max函数升级版，接受初始化列表查询 */
+template<typename T>
+inline T max(const std::initializer_list<T>& ls) {
+    return *mstl::max_element(ls.begin(), ls.end());
+}
+
 /* reverse all elements! */
 template<typename Iterator>
 inline void reverse(Iterator begin, Iterator end){
@@ -67,7 +78,8 @@ inline void reverse(Iterator begin, Iterator end){
 }
 
 
-/* fill container with value of x */
+
+/* 将范围内迭代器用x填充 */
 template<typename Iterator>
 inline void fill(Iterator begin, const Iterator& end, const typename Iterator::value_type& x){
     while (begin != end){
@@ -85,7 +97,7 @@ inline void iota(Iterator begin, const Iterator& end, typename Iterator::value_t
     }
 }
 
-/* 内省排序：快排，堆排与插排的结合 */
+/* sort函数，实现思路为内省排序(快排，堆排与插排的结合) */
 template <typename Iterator, typename COMPARE_FUNCTION = mstl::less<typename Iterator::value_type>>
 void sort(Iterator begin, Iterator end, COMPARE_FUNCTION compare_function = COMPARE_FUNCTION()) {
     algorithm_base::quick_sort_impl<Iterator, typename Iterator::value_type, COMPARE_FUNCTION>(begin, end, compare_function);
@@ -121,6 +133,26 @@ Iterator upper_bound(Iterator begin, Iterator end, const typename Iterator::valu
         }
     }
     return begin;
+}
+
+/* 将有序容器中的重复元素移动到容器末尾(应该是只接受随机迭代器，其他的迭代器要单独设计) */
+template<typename Iterator, typename = std::enable_if_t<std::is_base_of_v<mstl::random_access_iterator_tag, typename Iterator::iterator_category>>>
+Iterator unique(Iterator left, Iterator right) {
+    if (left == right) {
+        return right;
+    }
+    Iterator res = left;
+    Iterator it = mstl::next(left);
+    while (it != right) {
+        if (*res != *it) {
+            res ++;
+            if (res != it) {
+                mstl::swap(*res, *it);
+            }
+        }
+        ++it;
+    }
+    return mstl::next(res);
 }
 
 END_NAMESPACE
