@@ -1,31 +1,27 @@
-# MiniCppSTL  
-  
-A Mini STL implementation version.   
-  
-Some featrues need C++17 like : if constexpr...  
-  
-一个迷你版本的STL实现。  
-  
-一些特性需要编译器支持C++17。  
-  
-  
-如果该仓库对您的学习或者工作有帮助，请帮我点Star支持。  
-  
-If this repository is helpful for your studies or work, please consider giving it a star to show your support.  
+[中文版 (Chinese Version)](./README_zh.md)  
+# MiniCppSTL
+
+## Repository Introduction
+#### This repository implements a lightweight C++ Standard Template Library. It extensively uses template metaprogramming, static and dynamic polymorphism, conditional compilation, and other techniques to achieve an efficient lightweight STL.
+
+## Implemented Features:
+#### Allocator: Simple logic, uses operator new() and operator delete() for memory allocation and deallocation.
+#### Containers: Vector, Array, Deque, List, and series of Red-Black Tree containers.
+#### Iterators: Iterators are implemented as nested classes within containers, and all iterators inherit from an abstract class `mstl_iterator_base` that mandates the functionalities an iterator must implement.
+#### Adapters: Queue, Stack, Priority Queue (Heap).
+#### Algorithms: Sorting, Binary Search, Min/Max Finding, etc.
+#### Utilities: Perfect Forwarding, Move Semantics, Pair, Pointer Management objects, etc.
+
+## Usage
+#### Requires compiler support for C++17.
+#### Include the files and you can use them directly.
+#### All basic functionalities have been tested in `test.cpp`, but no guarantee is provided that there will be no bugs in certain use cases.
+#### You are free to use the contents of this repository as you wish.
+#### If this repository helps you in your learning or work, please give it a Star to support!
+
+## TODOs:
+#### More efficient memory management strategies.
+#### Fill out the algorithm library.
+#### Higher-level data structures?
 
 
-  
-TODO:  
-  
-DataStructure:  
-  unordered_map  
-  unordered_set ？（暂时不实现，还没想到一个很好的通用的序列化的方法）   cd
-  priority_queue  
-  
-  
-iterator:  
-  distance?  
-    
-
-  
-优化代码  
