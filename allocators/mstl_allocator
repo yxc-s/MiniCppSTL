@@ -44,7 +44,7 @@ inline typename Allocator<T>::pointer Allocator<T>::allocate(size_type size, con
 }
 
 template<typename T>
-inline void Allocator<T>::deallocate(pointer p, size_type size){
+inline void Allocator<T>::deallocate(pointer p, size_type size) {
     ::operator delete((void*) p); 
 }
 

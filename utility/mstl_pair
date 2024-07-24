@@ -1,5 +1,4 @@
 #pragma once
-
 #include "../core/mstl_common"
 #include <type_traits>      //remove_reference
 
@@ -11,16 +10,15 @@ public:
     T first;
     U second;
 
+    /* 构造和析构函数 */
     pair() : first(T()), second(U()) {}
-
     pair(const T& x, const U& y) : first(x), second(y) {}
-
     pair(T&& x, U&& y) : first(mstl::move(x)), second(mstl::move(y)) {}
-
     pair(const mstl::pair<T, U>& other) : first(other.first), second(other.second) {}
+    pair(mstl::pair<T, U>&& other) noexcept: first(mstl::move(other.first)), second(mstl::move(other.second)) {}
+    ~pair() = default;
 
-    pair(mstl::pair<T, U>&& other) : first(mstl::move(other.first)), second(mstl::move(other.second)) {}
-
+    /* =重载 */
     pair& operator =(const mstl::pair<T, U>& other) {
         if (this != &other) {
             first = other.first;
@@ -28,18 +26,18 @@ public:
         }
         return *this;
     }
-
-    pair& operator =(mstl::pair<T, U>&& other) {
-        if (this != &other){
+    pair& operator =(mstl::pair<T, U>&& other) noexcept {
+        if (this != &other) {
             first = mstl::move(other.first);
             second = mstl::move(other.second);
         }
         return *this;
     }
 
+    /* 比较运算符 */
     template<typename V, typename W>
     friend bool operator ==(const mstl::pair<V, W>& lhs, const mstl::pair<V, W>& rhs);
-    
+
     template<typename V, typename W>
     friend bool operator !=(const mstl::pair<V, W>& lhs, const mstl::pair<V, W>& rhs);
 
@@ -58,38 +56,38 @@ public:
 
 
 template<typename T, typename U>
-inline bool operator ==(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs){
+inline bool operator ==(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs) {
     return static_cast<bool>(lhs.first == rhs.first && lhs.second == rhs.second);
 }
 
 template<typename T, typename U>
-inline bool operator !=(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs){
+inline bool operator !=(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs) {
     return !(lhs == rhs);
 }
 
 template<typename T, typename U>
-inline bool operator <(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs){
+inline bool operator <(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs) {
     return static_cast<bool>(lhs.first < rhs.first);
 }
 
 template<typename T, typename U>
-inline bool operator >(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs){
+inline bool operator >(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs) {
     return static_cast<bool> (lhs.first > rhs.first);
 }
 
 template<typename T, typename U>
-inline bool operator <=(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs){
+inline bool operator <=(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs) {
     return !(lhs > rhs);
 }
 
 template<typename T, typename U>
-inline bool operator >=(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs){
+inline bool operator >=(const mstl::pair<T, U>& lhs, const mstl::pair<T, U>& rhs) {
     return !(lhs < rhs);
 }
 
 /* make pair! */
 template<typename T, typename U>
-inline mstl::pair<T, U> make_pair(T&& f, U&& s){
+inline mstl::pair<T, U> make_pair(T&& f, U&& s) {
     return mstl::pair<T, U>{mstl::forward<T>(f), mstl::forward<U>(s)};
 }
 

@@ -3,6 +3,7 @@
 
 namespace mstl{
 
+
 /******************************迭代器层次关系定义******************************/
 struct input_iterator_tag {};
 struct output_iterator_tag {};
@@ -14,17 +15,16 @@ struct random_access_iterator_tag : public bidirectional_iterator_tag {};
 
 
 
-
 /******************************迭代器小工具******************************/
 /* next iterator，限定单双向迭代器+随机访问迭代器才能用 */
 template <typename Iterator, typename = std::enable_if_t<std::is_base_of_v<mstl::forward_iterator_tag, typename Iterator::iterator_category>>>
-inline Iterator next(Iterator iter){
+inline Iterator next(Iterator iter) {
     return (++iter);
 }
 
 /* previous iterator， 限定双向迭代器+随机访问迭代器才能用 */
 template <typename Iterator, typename = std::enable_if_t<std::is_base_of_v<mstl::bidirectional_iterator_tag,  typename Iterator::iterator_category>>>
-inline Iterator prev(Iterator iter){
+inline Iterator prev(Iterator iter) {
     return (--iter);
 }
 /******************************迭代器小工具******************************/
@@ -33,7 +33,7 @@ inline Iterator prev(Iterator iter){
 
 
 
-/******************************排序仿函数******************************/
+/******************************默认比较对象******************************/
 /* 小的元素在左边 */
 template<typename T>
 struct less{
@@ -45,11 +45,11 @@ struct less{
 /* 大的元素在左边 */
 template<typename T>
 struct greater{
-    bool operator() (const T& lhs, const T& rhs){
+    bool operator() (const T& lhs, const T& rhs) {
         return lhs > rhs;
     }
 };
-/******************************排序仿函数******************************/
+/******************************默认比较对象******************************/
 
 
 
@@ -58,19 +58,19 @@ struct greater{
 /******************************移动语义&完美转发******************************/
 /* 移动语义 */
 template <typename T>
-typename std::remove_reference<T>::type&& move(T&& arg) {
+inline typename std::remove_reference<T>::type&& move(T&& arg) noexcept {
     return static_cast<typename std::remove_reference<T>::type&&>(arg);
 }
 
 /* 转发左值 */
 template<typename T>
-inline T&& forward(typename std::remove_reference<T>::type& arg){
+inline T&& forward(typename std::remove_reference<T>::type& arg) noexcept {
     return static_cast<T&&> (arg);
 }
 
 /* 转发右值 */
 template <typename T>
-inline T&& forward(typename std::remove_reference<T>::type&& arg) {
+inline T&& forward(typename std::remove_reference<T>::type&& arg) noexcept {
     return static_cast<T&&>(arg);
 }
 /******************************移动语义&完美转发******************************/
@@ -82,7 +82,7 @@ inline T&& forward(typename std::remove_reference<T>::type&& arg) {
 /******************************swap数据交换******************************/
 /* swap value */
 template <typename T>
-inline void swap(T& lhs, T& rhs){
+inline void swap(T& lhs, T& rhs) noexcept {
     T temp = mstl::move(lhs);
     lhs = mstl::move(rhs);
     rhs = mstl::move(temp);
@@ -90,7 +90,7 @@ inline void swap(T& lhs, T& rhs){
 
 /* swap iter data */
 template<typename Iterator>
-inline void iter_swap(Iterator& lhs, Iterator& rhs){
+inline void iter_swap(Iterator& lhs, Iterator& rhs) noexcept {
     swap(*lhs, *rhs);
 }
 /******************************swap数据交换******************************/
@@ -98,10 +98,10 @@ inline void iter_swap(Iterator& lhs, Iterator& rhs){
 
 /* log2 */
 template<typename T>
-inline mstl::size_t log2(T x){
+inline mstl::size_t log2(T x) {
     static_assert(std::is_integral<T>::value, "T must be an integral type");
     mstl::size_t res = 0;
-    while (x >>= 1){
+    while (x >>= 1) {
         res ++;
     }
     return res;

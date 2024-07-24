@@ -3,7 +3,6 @@
 #include "../allocators/mstl_allocator"
 #include "../utility/mstl_memory"
 #include "../iterators/mstl_iterator_base" 
-
 #include <cstring>           //memset, memcpy
 #include <type_traits>       //std::is_trivially_copyable
 
@@ -15,6 +14,7 @@ TODO: 内存管理？（末尾空位太多的时候，释放点？）
 */
 template<typename T, typename Allocator = mstl::Allocator<T>>
 class vector{
+    using this_vector_type = mstl::vector<T, Allocator>;
 public:
     /* STL format */
     using value_type       =  T;
@@ -29,8 +29,8 @@ public:
     /* 各种构造和析构函数 */
     explicit vector(size_type size = 0);
     vector(size_type size, const value_type& value);
-    vector(const vector<value_type>& other);
-    vector(vector<value_type>&& other) noexcept;
+    vector(const this_vector_type& other);
+    vector(this_vector_type&& other) noexcept;
     vector(const std::initializer_list<value_type>& initializer) noexcept;
     /* 这里先不限定只接受vector，先限定只接受随机访问容器，不然没法给其他容器排序 */
     template<typename InputIterator, typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename InputIterator::iterator_category>>>
@@ -43,8 +43,8 @@ public:
     template<typename... Args> void emplace_back(Args&&... args);
     void pop_back();
     void reserve(size_type n);
-    vector<value_type, Allocator>& operator =(const vector<value_type>& other);
-    vector<value_type, Allocator>& operator =(vector<value_type>&& other) noexcept;
+    vector<value_type, Allocator>& operator =(const this_vector_type& other);
+    vector<value_type, Allocator>& operator =(this_vector_type&& other) noexcept;
     template<typename U>
     friend bool operator ==(const mstl::vector<U>& lhs, const mstl::vector<U>& rhs);
     template<typename U>
@@ -91,17 +91,18 @@ public:
         using reference          =   ReferenceType;
         using difference_type    =   std::ptrdiff_t;
         using iterator_category  =   mstl::random_access_iterator_tag;
+        using container_type     =   mstl::container_type_base::_vector_;
 
-        using container_type = mstl::container_type_base::_vector_;
 
-        
         iterator_impl(pointer ptr) : ptr_(ptr) {}
+        ~iterator_impl() override = default;
+
 
         reference operator*() const { return *ptr_; }
         pointer operator->()  { return ptr_; }
 
         iterator_impl& operator++() override { 
-            if constexpr (IS_REVERSE){
+            if constexpr (IS_REVERSE) {
                 -- ptr_;
             }
             else{
@@ -112,7 +113,7 @@ public:
 
         iterator_impl operator++(int) override { 
             iterator_impl new_iter = *this; 
-            if constexpr (IS_REVERSE){
+            if constexpr (IS_REVERSE) {
                 --(*this);
             }
             else{
@@ -122,7 +123,7 @@ public:
         }
 
         iterator_impl& operator--() override { 
-            if constexpr (IS_REVERSE){
+            if constexpr (IS_REVERSE) {
                 ++ptr_;
             }
             else{
@@ -164,7 +165,7 @@ public:
         bool operator <=(const this_iter_type& other) const { return ptr_ <= other.ptr_; }
         bool operator >(const this_iter_type& other) const { return !(*this <= other); }
         bool operator >=(const this_iter_type& other) const { return !(*this < other); }
-        this_iter_type& operator =(const this_iter_type& other) {
+        virtual this_iter_type& operator =(const this_iter_type& other) override{
             if (this != &other) {
                 ptr_ = other.ptr_;
             }
@@ -208,8 +209,8 @@ private:
     }
 
     /* 对vector中所有已经构造的对象进行析构 */
-    void call_all_destructors(){
-        for (size_type i = 0; i < current_size_; ++i){
+    void call_all_destructors() {
+        for (size_type i = 0; i < current_size_; ++i) {
             data_ptr_[i].~T();
         }
         current_size_ = 0;
@@ -226,7 +227,7 @@ inline vector<T, Allocator>::vector(size_type size):
     current_size_(size),
     capacity_(size)
 {
-    if (capacity_ > 0){
+    if (capacity_ > 0) {
         for (size_type i = 0; i < current_size_; ++i) {
             new(data_ptr_ + i) T();
         }
@@ -240,7 +241,7 @@ inline vector<T, Allocator>::vector(size_type size, const value_type& value):
     current_size_(size),
     capacity_(size)
 {
-    if (capacity_ > 0){
+    if (capacity_ > 0) {
         for (size_type i = 0; i < current_size_; ++i) {
             new(data_ptr_ + i) T(value);
         }
@@ -249,7 +250,7 @@ inline vector<T, Allocator>::vector(size_type size, const value_type& value):
 
 /* 拷贝构造 */
 template<typename T, typename Allocator>
-inline vector<T, Allocator>::vector(const vector<value_type>& other):
+inline vector<T, Allocator>::vector(const this_vector_type& other):
     current_size_(other.current_size_),
     capacity_(other.capacity_),
     data_ptr_(allocator_.allocate(capacity_))
@@ -266,7 +267,7 @@ inline vector<T, Allocator>::vector(const vector<value_type>& other):
 
 /* 移动构造 */
 template<typename T, typename Allocator>
-inline vector<T, Allocator>::vector(vector<value_type>&& other) noexcept:
+inline vector<T, Allocator>::vector(this_vector_type&& other) noexcept:
     data_ptr_(other.data_ptr_),
     capacity_(other.capacity_),
     current_size_(other.current_size_)
@@ -284,7 +285,7 @@ inline vector<T, Allocator>::vector(const std::initializer_list<value_type>& ini
     current_size_(static_cast<size_type>(initializer.size()))
 {
     size_type p = 0;
-    for (const auto& value : initializer){
+    for (const auto& value : initializer) {
         data_ptr_[p ++] = value;
     }
 }
@@ -292,7 +293,7 @@ inline vector<T, Allocator>::vector(const std::initializer_list<value_type>& ini
 /* 迭代器构造 */
 template<typename T, typename Allocator>
 template<typename InputIterator, typename>
-inline vector<T, Allocator>::vector(InputIterator begin, InputIterator end){   
+inline vector<T, Allocator>::vector(InputIterator begin, InputIterator end) {   
     size_type num_new_elements = 0;
     if constexpr (std::is_same_v<typename InputIterator::iterator_category, mstl::random_access_iterator_tag>) {
         num_new_elements = (end - begin);
@@ -302,7 +303,7 @@ inline vector<T, Allocator>::vector(InputIterator begin, InputIterator end){
     }
     current_size_ = capacity_ = num_new_elements;
     data_ptr_ = allocator_.allocate(num_new_elements);
-    for (size_t i = 0; i < current_size_; ++i){
+    for (size_t i = 0; i < current_size_; ++i) {
         data_ptr_[i] = *(begin);
         ++begin;
     }
@@ -310,8 +311,8 @@ inline vector<T, Allocator>::vector(InputIterator begin, InputIterator end){
 
 /* 析构函数 */
 template<typename T, typename Allocator>
-inline vector<T, Allocator>::~vector(){
-    if (data_ptr_){
+inline vector<T, Allocator>::~vector() {
+    if (data_ptr_) {
         release_memory();
     }
     data_ptr_ = nullptr;
@@ -319,8 +320,8 @@ inline vector<T, Allocator>::~vector(){
 
 /* 向末尾添加左值元素*/
 template<typename T, typename Allocator>
-inline void vector<T, Allocator>::push_back(const value_type& value){
-    if (current_size_ == capacity_){
+inline void vector<T, Allocator>::push_back(const value_type& value) {
+    if (current_size_ == capacity_) {
         this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
     }
     new (data_ptr_ + current_size_) T(value);
@@ -329,8 +330,8 @@ inline void vector<T, Allocator>::push_back(const value_type& value){
 
 /* 向末尾添加右值元素*/
 template<typename T, typename Allocator>
-inline void vector<T, Allocator>::push_back(value_type&& value){
-    if (current_size_ == capacity_){
+inline void vector<T, Allocator>::push_back(value_type&& value) {
+    if (current_size_ == capacity_) {
         this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
     }
     new (data_ptr_ + current_size_) T(mstl::move(value));
@@ -340,8 +341,8 @@ inline void vector<T, Allocator>::push_back(value_type&& value){
 /* 在末尾根据参数直接构造元素 */
 template<typename T, typename Allocator>
 template<typename... Args>
-inline void vector<T, Allocator>::emplace_back(Args&&... args){
-    if (current_size_ == capacity_){
+inline void vector<T, Allocator>::emplace_back(Args&&... args) {
+    if (current_size_ == capacity_) {
         this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
     }
     new(data_ptr_ + current_size_) T(mstl::forward<Args>(args)...);
@@ -351,8 +352,8 @@ inline void vector<T, Allocator>::emplace_back(Args&&... args){
 
 /* 删除最后一个元素 */
 template<typename T, typename Allocator>
-inline void vector<T, Allocator>::pop_back(){
-    if (current_size_ > 0) {
+inline void vector<T, Allocator>::pop_back() {
+    if (current_size_ > 0) {    //TODO:操作的合法性应该留给用户
         current_size_ --;
         if constexpr (!std::is_trivially_destructible<T>::value) {
             data_ptr_[current_size_].~T();
@@ -362,8 +363,8 @@ inline void vector<T, Allocator>::pop_back(){
 
 /* 预分配指定大小内存 */
 template<typename T, typename Allocator>
-inline void vector<T, Allocator>::reserve(size_type size){
-    if (size > capacity_){
+inline void vector<T, Allocator>::reserve(size_type size) {
+    if (size > capacity_) {
         pointer new_pointer = allocator_.allocate(size);
         if constexpr (std::is_trivially_copyable<T>::value) {
             memcpy(new_pointer, data_ptr_, sizeof(T) * current_size_);
@@ -382,13 +383,13 @@ inline void vector<T, Allocator>::reserve(size_type size){
 
 /* 拷贝构造=重载 */
 template<typename T, typename Allocator>
-inline vector<T, Allocator>& vector<T, Allocator>::operator =(const vector<value_type>& other){
-    if (this != &other){
-        if (data_ptr_){
+inline vector<T, Allocator>& vector<T, Allocator>::operator =(const this_vector_type& other) {
+    if (this != &other) {
+        if (data_ptr_) {
             call_all_destructors();
         }
-        if (capacity_ < other.current_size_){
-            if (data_ptr_){
+        if (capacity_ < other.current_size_) {
+            if (data_ptr_) {
                 release_memory();
             }
             data_ptr_ = allocator_.allocate(other.capacity_);
@@ -410,9 +411,9 @@ inline vector<T, Allocator>& vector<T, Allocator>::operator =(const vector<value
 
 /* 移动构造=重载 */
 template<typename T, typename Allocator>
-inline vector<T, Allocator>& vector<T, Allocator>::operator =(vector<value_type>&& other) noexcept{
-    if (this != &other){
-        if (data_ptr_){
+inline vector<T, Allocator>& vector<T, Allocator>::operator =(this_vector_type&& other) noexcept{
+    if (this != &other) {
+        if (data_ptr_) {
             release_memory();
         }
         data_ptr_ = other.data_ptr_;
@@ -427,12 +428,12 @@ inline vector<T, Allocator>& vector<T, Allocator>::operator =(vector<value_type>
 
 /* 检查两个vector是否相等 */
 template<typename T>
-inline bool operator ==(const mstl::vector<T>& lhs, const mstl::vector<T>& rhs){
-    if (lhs.size() != rhs.size()){
+inline bool operator ==(const mstl::vector<T>& lhs, const mstl::vector<T>& rhs) {
+    if (lhs.size() != rhs.size()) {
         return false;
     }
-    for (decltype(lhs.size()) i = 0; i < lhs.size(); ++i){
-        if (lhs[i] != rhs[i]){
+    for (decltype(lhs.size()) i = 0; i < lhs.size(); ++i) {
+        if (lhs[i] != rhs[i]) {
             return false;
         }
     }
@@ -441,13 +442,13 @@ inline bool operator ==(const mstl::vector<T>& lhs, const mstl::vector<T>& rhs){
 
 /* 检查两个vector是否不相等 */
 template<typename T>
-inline bool operator !=(const mstl::vector<T>& lhs, const mstl::vector<T>& rhs){
+inline bool operator !=(const mstl::vector<T>& lhs, const mstl::vector<T>& rhs) {
     return !(lhs == rhs);
 }
 
 template<typename T, typename Allocator>
 template<typename Iterator, typename>
-inline void vector<T, Allocator>::erase(Iterator position){
+inline void vector<T, Allocator>::erase(Iterator position) {
     if (position != end()) {
         while ((position) != end()) {
             (*position) = mstl::move(*(position + 1));
@@ -477,7 +478,7 @@ inline void vector<T, Allocator>::erase(Iterator left, Iterator right) {
 /* insert: 接受一个左值或者右值 */
 template<typename T, typename Allocator>
 template<typename Iterator, typename U, typename, typename>
-inline void vector<T, Allocator>::insert(Iterator position, U&& value){
+inline void vector<T, Allocator>::insert(Iterator position, U&& value) {
     if (current_size_ == capacity_) {
         size_type d = position - begin();  /* 非常重要! 内存重新分配后之前迭代器全都失效 ~ */
         this->reserve((capacity_ > 0 ? (capacity_ << 1) : 2));
@@ -494,7 +495,7 @@ inline void vector<T, Allocator>::insert(Iterator position, U&& value){
 /* insert: 接受一对迭代器 */
 template<typename T, typename Allocator>
 template<typename Iterator, typename InputIterator, typename, typename>
-inline void vector<T, Allocator>::insert(Iterator position, InputIterator left, InputIterator right){
+inline void vector<T, Allocator>::insert(Iterator position, InputIterator left, InputIterator right) {
     //size_type num_new_elements = ..如果是红黑树呢？没有distance啊，不过这里保证left是right前面的迭代器，也可以
     size_type num_new_elements = 0;
     if constexpr (std::is_same_v<typename InputIterator::iterator_category, mstl::random_access_iterator_tag>) {

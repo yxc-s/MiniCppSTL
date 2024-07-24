@@ -6,30 +6,29 @@
 
 
 NAMESPACE_MSTL
-//TODO:
+/* map base */
 namespace map_base{
-template<typename T, typename U, typename COMPARE_FUNCTION, typename Allocator, const bool IS_MULTI>
-class map_impl: public mstl::RedBlackTree<T, U, COMPARE_FUNCTION, Allocator, true, IS_MULTI> {
-    using tree_base = mstl::RedBlackTree<T, U, COMPARE_FUNCTION, Allocator, true, IS_MULTI>;
-    using node_type = typename tree_base::node_type;
-    using node_value_type = typename node_type::value_type;
-    using this_map_type = map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>;
+template<typename T, typename U, typename Compare, typename Allocator, const bool IS_MULTI>
+class map_impl: public mstl::RedBlackTree<T, U, Compare, Allocator, true, IS_MULTI> {
+    using tree_base       =   mstl::RedBlackTree<T, U, Compare, Allocator, true, IS_MULTI>;
+    using node_type       =   typename tree_base::node_type;
+    using node_value_type =   typename node_type::value_type;
+    using this_map_type   =   map_impl<T, U, Compare, Allocator, IS_MULTI>;
 public:
-    using value_type = T;
-    using pointer = T*;
-    using reference = T&;
-    using const_pointer = const T*;
-    using const_reference = const T&;
-    using difference_type  =  std::ptrdiff_t;
+    using value_type      = T;
+    using pointer         = T*;
+    using reference       = T&;
+    using const_pointer   = const T&;
+    using const_reference = const reference;
 
     /* 当前类和迭代器类里都根据 IS_MULTI 定义了一个相同的迭代器类型，保证在erase的时候进行类型检查不会出错 */
     using container_type = typename std::conditional_t<IS_MULTI, 
-        mstl::container_type_base::multimap_iterator, mstl::container_type_base::map_iterator>;
+        mstl::container_type_base::_multimap_, mstl::container_type_base::_map_>;
 
     /* 构造和析构函数 */
     map_impl() = default;
     map_impl(const this_map_type& other) : tree_base(other) {}
-    map_impl(this_map_type&& other) : tree_base(mstl::move(other)) {}
+    map_impl(this_map_type&& other) noexcept: tree_base(mstl::move(other)) {}
     map_impl(const std::initializer_list<value_type>& initializer) {
         for (const auto& value : initializer) {
             insert(value);      //TODO:批量插入策略？？
@@ -55,8 +54,9 @@ public:
             tree_base::build(other, tree_base::root_, other.root_);
         }
     }
+
     /* =移动语义*/
-    this_map_type& operator =(this_map_type&& other) {
+    this_map_type& operator =(this_map_type&& other) noexcept{
         tree_base::destory(tree_base::root_);
         tree_base::nil_->tree_base::~node_type();
         tree_base::allocator_.deallocate(tree_base::nil_);
@@ -64,7 +64,7 @@ public:
         tree_base::root_  = other.root_;
         tree_base::current_size_ = other.current_size_;
         other.nil_ = other.allocator_.allocate(1);
-        new(other.nil_) node_type(nullptr); //TODO: node_type前面不加作用域吗
+        new(other.nil_) node_type(nullptr);
         other.root_ = other.nil_;
         other.current_size_ = 0;
     }
@@ -89,9 +89,9 @@ public:
     /* Iterator : 注意！这楼里的value_type是红黑树的node类型，pointer也一样，但是，reference是node里面的data类型!! 并且没有->重载! */
     template<typename ValueType, typename ReferenceType, const bool IS_REVERSE>
     class iterator_impl : public iterator_base<iterator_impl<ValueType, ReferenceType, IS_REVERSE>, ValueType> {
-        friend class map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>; 
-        using map_base_type = map_impl<T, U, COMPARE_FUNCTION, Allocator, IS_MULTI>;
-        using this_iter_type = iterator_impl<ValueType, ReferenceType, IS_REVERSE>;
+        friend class map_impl<T, U, Compare, Allocator, IS_MULTI>; 
+        using map_base_type   =  map_impl<T, U, Compare, Allocator, IS_MULTI>;
+        using this_iter_type  =  iterator_impl<ValueType, ReferenceType, IS_REVERSE>;
     public:
         using value_type         =   ValueType;
         using pointer            =   value_type*;
@@ -101,16 +101,16 @@ public:
         
         /* 该类型用于操作时类型的安全匹配 */
         using container_type          =   typename std::conditional_t<IS_MULTI, 
-            mstl::container_type_base::multimap_iterator, mstl::container_type_base::map_iterator>;
+            mstl::container_type_base::_multimap_, mstl::container_type_base::_map_>;
         
         iterator_impl(pointer ptr, map_base_type* map) : ptr_(ptr), parent_map_(map) {}
-        ~iterator_impl() override {};
+        ~iterator_impl() override = default;
 
         data_reference operator*() { return ptr_->data_; }
         data_pointer operator->()  { return &(ptr_->data_); }
 
         iterator_impl& operator++() override { 
-            if constexpr (IS_REVERSE){
+            if constexpr (IS_REVERSE) {
                 find_pre();
             }
             else{
@@ -121,7 +121,7 @@ public:
 
         iterator_impl operator++(int) override { 
             iterator_impl new_iter = *this; 
-            if constexpr (IS_REVERSE){
+            if constexpr (IS_REVERSE) {
                 --(*this);
             }
             else{
@@ -131,7 +131,7 @@ public:
         }
 
         iterator_impl& operator--()  { 
-            if constexpr (IS_REVERSE){
+            if constexpr (IS_REVERSE) {
                 find_next();
             }
             else{
@@ -153,7 +153,7 @@ public:
         /* 迭代器比较运算符 */
         virtual bool operator==(const this_iter_type& other) const override{ return ptr_ == other.ptr_; }
         virtual bool operator!=(const this_iter_type& other) const override{ return !(*this == other); }
-        this_iter_type& operator = (const this_iter_type& other) { 
+        virtual this_iter_type& operator =(const this_iter_type& other) override{ 
             ptr_ = other.ptr_; 
             parent_map_ = other.parent_map_; 
             return *this;
@@ -189,7 +189,7 @@ public:
         /* 找到当前节点的上一个中序遍历节点 */
         void find_pre() {
             if (parent_map_->isNil(ptr_)) {
-                if constexpr (!IS_REVERSE){
+                if constexpr (!IS_REVERSE) {
                     ptr_ = parent_map_->right_most();
                 }
                 return;
@@ -259,15 +259,15 @@ public:
 
 
 /* map : 相同元素最多只有一个的红黑树，这里跟set的区别是多了一个模板参数U（表示value的类型） */
-template<typename T, typename U, typename COMPARE_FUNCTION = mstl::less<mstl::pair<T, U>>, typename Allocator = mstl::Allocator<mstl::pair<T, U>>>
-class map: public map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, false> {
-    using this_type = map<T, U, COMPARE_FUNCTION, Allocator>;
-    using this_base = map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, true>;
+template<typename T, typename U, typename Compare = mstl::less<mstl::pair<T, U>>, typename Allocator = mstl::Allocator<mstl::pair<T, U>>>
+class map: public map_base::map_impl<T, U, Compare, Allocator, false> {
+    using this_type = map<T, U, Compare, Allocator>;
+    using this_base = map_base::map_impl<T, U, Compare, Allocator, true>;
 public:
     map() = default;
     map(const this_type& other): this_base(other) {};
-    map(this_type&& other) : this_base(other){};
-    map(const std::initializer_list<T>& init) :this_base(init){}
+    map(this_type&& other) : this_base(other) {};
+    map(const std::initializer_list<T>& init) :this_base(init) {}
     ~map() = default;
 
     this_type& operator =(const this_type& other) {
@@ -283,15 +283,15 @@ public:
 
 
 /* multimap : 相同元素可以有很多的红黑树 */
-template<typename T, typename U, typename COMPARE_FUNCTION = mstl::less<mstl::pair<T, U>>, typename Allocator = mstl::Allocator<mstl::pair<T, U>>>
-class multimap: public map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, true> {
-    using this_type = map<T, U, COMPARE_FUNCTION, Allocator>;
-    using this_base = map_base::map_impl<T, U, COMPARE_FUNCTION, Allocator, true>;
+template<typename T, typename U, typename Compare = mstl::less<mstl::pair<T, U>>, typename Allocator = mstl::Allocator<mstl::pair<T, U>>>
+class multimap: public map_base::map_impl<T, U, Compare, Allocator, true> {
+    using this_type = map<T, U, Compare, Allocator>;
+    using this_base = map_base::map_impl<T, U, Compare, Allocator, true>;
 public:
     multimap() = default;
     multimap(const this_type& other): this_base(other) {};
-    multimap(this_type&& other) : this_base(other){};
-    multimap(const std::initializer_list<T>& init) :this_base(init){}
+    multimap(this_type&& other) : this_base(other) {};
+    multimap(const std::initializer_list<T>& init) :this_base(init) {}
     ~multimap() = default;
 
     this_type& operator =(const this_type& other) {

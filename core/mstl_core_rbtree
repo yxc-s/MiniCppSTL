@@ -1,11 +1,11 @@
 #pragma once
-
-#include <type_traits>   //std::conditional_t
 #include "../utility/mstl_pair"
+#include <type_traits>   //std::conditional_t
+
 
 /*
-红黑树参考的：https://blog.csdn.net/qq_40843865/article/details/102498310
-https://www.cnblogs.com/qingergege/p/7351659.html
+红黑树参考资料：https://blog.csdn.net/qq_40843865/article/details/102498310
+             https://www.cnblogs.com/qingergege/p/7351659.html
 */
 
 NAMESPACE_MSTL 
@@ -14,12 +14,11 @@ NAMESPACE_MSTL
 template<typename T, typename U, const bool IS_MAP>
 class RbtNode{
 public:
-    using value_type      =  typename std::conditional_t<IS_MAP, mstl::pair<T, U>, T>;
-    using const_value_type = const value_type;
-    using pointer         =  value_type*;
-    using const_pointer   =  const value_type*;
-    using reference       =  value_type&;
-    using const_reference =  const value_type&;
+    using value_type       =  typename std::conditional_t<IS_MAP, mstl::pair<T, U>, T>;
+    using pointer          =  value_type*;
+    using const_pointer    =  const value_type*;
+    using reference        =  value_type&;
+    using const_reference  =  const value_type&;
 
     /* nil专用构造函数 */
     explicit RbtNode(RbtNode<T, U, IS_MAP>* nil):
@@ -104,7 +103,7 @@ public:
     using allocator_type           =    typename Allocator::template rebind<node_type>::other;
 
 
-    RedBlackTree() : nil_(allocator_.allocate(1)), current_size_(0){
+    RedBlackTree() : nil_(allocator_.allocate(1)), current_size_(0) {
         new(nil_)  node_type(nullptr);
         root_ = nil_; /* 一定不能在初始化构造列表里直接构造，不然root_ == nil_为false*/
     }
@@ -135,7 +134,7 @@ public:
         other.current_size_ = 0;
     }
 
-    virtual ~RedBlackTree(){
+    virtual ~RedBlackTree() {
         destory(root_);
         current_size_ = 0;
         nil_->~node_type();
@@ -255,13 +254,13 @@ protected:
     
     /* 查找指定数值节点 */
     template<typename V>
-    node_type* find_node(const V& value){
+    node_type* find_node(const V& value) {
         node_type* cur = root_;
-        while (cur != nil_){
+        while (cur != nil_) {
             if (cur->data_ == value) {
                 return cur;
             }
-            if (compare_function_(cur->data_, value)){
+            if (compare_function_(cur->data_, value)) {
                 cur = cur->right_;
             }
             else{
@@ -274,8 +273,8 @@ protected:
     template<const bool IS_UPPER_BOUND>
     node_type* binary_search_impl(const typename node_type::value_type& value) {
         node_type* cur = root_;
-        while (cur != nil_){
-            if constexpr (!IS_UPPER_BOUND){
+        while (cur != nil_) {
+            if constexpr (!IS_UPPER_BOUND) {
                 if (cur->data_ == value) {
                     return cur;
                 }
@@ -285,7 +284,7 @@ protected:
                     return cur;
                 }
             }
-            if (compare_function_(cur->data_, value)){
+            if (compare_function_(cur->data_, value)) {
                 cur = cur->right_;
             }
             else{
@@ -331,16 +330,16 @@ protected:
 
 /* 左旋：右孩子y变为当前节点x的父亲节点，x成为y的左孩子，y之前的左孩子成为x的右孩子 */
 template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::rotate_left(node_type* x){
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::rotate_left(node_type* x) {
     node_type* y = x->right_;
     x->right_ = y->left_;
-    if (!isNil(y->left_)){
+    if (!isNil(y->left_)) {
         y->left_->parent_ = x;
     }
-    if (isNil(x->parent_)){
+    if (isNil(x->parent_)) {
         root_ = y;
     }
-    else if (is_left(x)){
+    else if (is_left(x)) {
         x->parent_->left_ = y;
     }
     else{
@@ -353,16 +352,16 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::rotate_lef
 
 /* 右旋: 左孩子y变为当前节点x的父亲节点，x成为y的右孩子，y之前的右孩子成为x的左孩子 */
 template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::rotate_right(node_type* x){
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::rotate_right(node_type* x) {
     node_type* y = x->left_;
     x->left_ = y->right_;
-    if (!isNil(y->right_)){
+    if (!isNil(y->right_)) {
         y->right_->parent_ = x;
     }
-    if (isNil(x->parent_)){
+    if (isNil(x->parent_)) {
         root_ = y;
     }
-    else if (is_left(x)){
+    else if (is_left(x)) {
         x->parent_->left_ = y;
     }
     else{
@@ -380,15 +379,15 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert_new
     x->left_ = nil_;
     x->right_ = nil_;
     x->is_black_ = false;
-    if (isNil(root_)){
+    if (isNil(root_)) {
         root_ = x;
         x->parent_ = nil_;
         x->is_black_ = true;
         return;
     }
     node_type* cur = root_;
-    while (true){
-        if (compare_function_(x->data_, cur->data_)){
+    while (true) {
+        if (compare_function_(x->data_, cur->data_)) {
             if (cur->left_ == nil_) {
                 cur->left_ = x;
                 x->parent_ = cur;
@@ -397,7 +396,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert_new
             cur = cur->left_;
         }
         else{
-            if (cur->right_ == nil_){
+            if (cur->right_ == nil_) {
                 cur->right_ = x;
                 x->parent_ = cur;
                 return;
@@ -448,7 +447,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert_fix
 /* 插入新元素 */
 template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
 template<typename V, typename>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert(V&& value){
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert(V&& value) {
     if constexpr (!IS_MULTI) {
         node_type* temp = find_node(value);
         if (!isNil(temp)) {
@@ -467,7 +466,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert(V&&
 
 /* 重载的insert， 可以接受const左值 */
 template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert(const typename node_type::value_type& value){
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::insert(const typename node_type::value_type& value) {
     if constexpr (!IS_MULTI) {
         node_type* temp = find_node(value);
         if (!isNil(temp)) {
@@ -540,7 +539,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>:: erase_nod
             }
             /* 此时必定进入这一步，bro必定为黑色 */
             /* bro节点的不同节点方向(右)有一个红色节点 */
-            if (is_left(bro) && !isNil(bro->right_) && bro->right_->is_black_ == false){
+            if (is_left(bro) && !isNil(bro->right_) && bro->right_->is_black_ == false) {
                 mstl::swap(bro->is_black_, bro->right_->is_black_);
                 rotate_left(bro);
             }
@@ -637,7 +636,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>:: erase_nod
 
 /* 删除函数 */
 template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::erase_impl(const typename node_type::value_type& value){
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::erase_impl(const typename node_type::value_type& value) {
     node_type* node = find_node(value);
     if (!isNil(node)) {
         erase_node_impl(node);
@@ -645,7 +644,7 @@ inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::erase_impl
     }
 }
 template<typename T, typename U, typename Compare, typename Allocator, bool IS_MAP, bool IS_MULTI>
-inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::erase_impl(node_type* node){
+inline void RedBlackTree<T, U, Compare, Allocator, IS_MAP, IS_MULTI>::erase_impl(node_type* node) {
     if (node != nil_) {
         erase_node_impl(node);
         current_size_ --;

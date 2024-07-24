@@ -3,7 +3,6 @@
 #include "../allocators/mstl_allocator"
 #include "../utility/mstl_memory"
 #include "../iterators/mstl_iterator_base" 
-
 #include <type_traits>       //std::is_trivially_copyable
 
 NAMESPACE_MSTL
@@ -15,6 +14,7 @@ TODO:
 
 template <typename T, const mstl::size_t ARRAY_SIZE>
 class array{
+    using this_array_type = mstl::array<T, ARRAY_SIZE>;
 public:
     /* STL format */
     using value_type       =  T;
@@ -23,20 +23,22 @@ public:
     using const_pointer    =  const T*;
     using const_reference  =  const T&;
     using size_type        =  mstl::size_t;
-    
+    using container_type   =   mstl::container_type_base::_array_;
 
+    /* 默认构造函数 */
     constexpr array() noexcept: data_ptr_{}{
         if constexpr (!std::is_trivially_copyable<T>::value) {
-            for (size_type i = 0; i < ARRAY_SIZE; ++i){
+            for (size_type i = 0; i < ARRAY_SIZE; ++i) {
                 new(&data_ptr_[i]) T();
             }
         }
     }
 
+    /* 初始化列表构造 */
     constexpr array(const std::initializer_list<T>& initializer) noexcept : data_ptr_{}{
         size_type p = 0;
-        for (const auto& value : initializer){
-            if (p < ARRAY_SIZE){
+        for (const auto& value : initializer) {
+            if (p < ARRAY_SIZE) {
                 data_ptr_[p ++] = value;
             }
             else{
@@ -45,21 +47,30 @@ public:
         }
     }
 
-    ~array() = default;
-
-
-    constexpr void fill(const T& value) noexcept{
-        for (size_type i = 0; i < ARRAY_SIZE; ++i){
-            data_ptr_[i] = value;
+    /* 拷贝构造 */
+    array(const this_array_type& other) {
+        size_type i = 0;
+        for (const auto& value : other) {
+            data_ptr_[i ++] = value;
         }
     }
 
-    /* 简单的重载 */
-    template<typename U, const mstl::size_t size>
-    friend bool operator ==(const mstl::array<U, size>& lhs, const mstl::array<U, size>& rhs);
-    template<typename U, const mstl::size_t size>
-    friend bool operator !=(const mstl::array<U, size>& lhs, const mstl::array<U, size>& rhs);
+    /* 移动构造: 这里不能直接偷数组指针了，得一个元素一个元素偷 */
+    array(this_array_type&& other) {
+        size_type i = 0;
+        for (auto& value : other) {
+            data_ptr_[i ++] = mstl::move(value);
+        }
+    }
 
+    ~array() = default;
+
+    /* 数组填充 */
+    constexpr void fill(const T& value) noexcept{
+        for (size_type i = 0; i < ARRAY_SIZE; ++i) {
+            data_ptr_[i] = value;
+        }
+    }
 
     /* 一些类内直接定义的函数 */
     constexpr reference operator[] (size_type p)                noexcept { return data_ptr_[p]; }
@@ -69,6 +80,27 @@ public:
     constexpr reference back()                                  noexcept { return data_ptr_[ARRAY_SIZE - 1]; }
     constexpr const_reference back()                      const noexcept { return data_ptr_[ARRAY_SIZE - 1]; }
     constexpr size_type size()                            const noexcept { return ARRAY_SIZE; }
+
+    /* =拷贝重载 */
+    this_array_type& operator =(const this_array_type& other) {
+        size_type i = 0;
+        for (const auto& value : other) {
+            data_ptr_[i ++] = value;
+        }
+    }
+    /* =移动重载 */
+    this_array_type& operator =(this_array_type&& other) {
+        size_type i = 0;
+        for (auto& value : other) {
+            data_ptr_[i ++] = mstl::move(value);
+        }
+    }
+
+    /* ==重载 */
+    template<typename U, const mstl::size_t size>
+    friend bool operator ==(const mstl::array<U, size>& lhs, const mstl::array<U, size>& rhs);
+    template<typename U, const mstl::size_t size>
+    friend bool operator !=(const mstl::array<U, size>& lhs, const mstl::array<U, size>& rhs);
 
      /* Iterator */
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
@@ -80,15 +112,18 @@ public:
         using reference          =   ReferenceType;
         using difference_type    =   std::ptrdiff_t;
         using iterator_category  =   mstl::random_access_iterator_tag;
+        using container_type     =   mstl::container_type_base::_array_;
         
-        
+
         iterator_impl(pointer ptr) : ptr_(ptr) {}
+        ~iterator_impl() override = default;
+
 
         reference operator*() const { return *ptr_; }
         pointer operator->()  { return ptr_; }
 
         iterator_impl& operator++() override { 
-            if constexpr (IS_REVERSE){
+            if constexpr (IS_REVERSE) {
                 -- ptr_;
             }
             else{
@@ -96,9 +131,10 @@ public:
             }
             return *this; 
         }
+        
         iterator_impl operator++(int) override { 
             iterator_impl new_iter = *this; 
-            if constexpr (IS_REVERSE){
+            if constexpr (IS_REVERSE) {
                 --(*this);
             }
             else{
@@ -108,7 +144,7 @@ public:
         }
 
         iterator_impl& operator--() override { 
-            if constexpr (IS_REVERSE){
+            if constexpr (IS_REVERSE) {
                 ++ptr_;
             }
             else{
@@ -150,7 +186,7 @@ public:
         bool operator <=(const this_iter_type& other) const { return ptr_ <= other.ptr_; }
         bool operator >(const this_iter_type& other) const { return !(*this <= other); }
         bool operator >=(const this_iter_type& other) const { return !(*this < other); }
-        this_iter_type& operator =(const this_iter_type& other) {
+        virtual this_iter_type& operator =(const this_iter_type& other) override{
             if (this != &other) {
                 ptr_ = other.ptr_;
             }
@@ -181,16 +217,17 @@ public:
 
 private:
     value_type data_ptr_[ARRAY_SIZE];
+
 };
 
 /* 检查两个array是否相等 */
 template<typename T, const mstl::size_t size>
-inline bool operator ==(const mstl::array<T, size>& lhs, const mstl::array<T, size>& rhs){
-    if (lhs.size() != rhs.size()){
+inline bool operator ==(const mstl::array<T, size>& lhs, const mstl::array<T, size>& rhs) {
+    if (lhs.size() != rhs.size()) {
         return false;
     }
-    for (decltype(lhs.size()) i = 0; i < lhs.size(); ++i){
-        if (lhs[i] != rhs[i]){
+    for (decltype(lhs.size()) i = 0; i < lhs.size(); ++i) {
+        if (lhs[i] != rhs[i]) {
             return false;
         }
     }
@@ -199,7 +236,7 @@ inline bool operator ==(const mstl::array<T, size>& lhs, const mstl::array<T, si
 
 /* 检查两个array是否不相等 */
 template<typename T, const mstl::size_t size>
-inline bool operator !=(const mstl::array<T, size>& lhs, const mstl::array<T, size>& rhs){
+inline bool operator !=(const mstl::array<T, size>& lhs, const mstl::array<T, size>& rhs) {
     return !(lhs == rhs);
 }
 

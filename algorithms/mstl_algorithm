@@ -2,8 +2,9 @@
 #include "../core/mstl_common"
 #include "../containers/mstl_vector"
 #include "../core/mstl_core_sort"
-NAMESPACE_MSTL
 
+
+NAMESPACE_MSTL
 
 /*
 TODO
@@ -13,45 +14,45 @@ TODO
 
 /* 返回小值 return minimum value */
 template<typename T>
-inline T min(const T& lhs, const T& rhs){
+inline T min(const T& lhs, const T& rhs) {
     return lhs <= rhs ? lhs : rhs;
 }
 
 /* 返回大值 return maximum value */
 template<typename T>
-inline T max(const T& lhs, const T& rhs){
+inline T max(const T& lhs, const T& rhs) {
     return lhs >= rhs ? lhs : rhs;
 }
 
 
 /* 返回数值最小的迭代器 return iterator with minimum value */
 template<typename Iterator>
-Iterator min_element(Iterator begin, const Iterator& end){
-    if (begin == end) {
-        return begin;
+inline Iterator min_element(Iterator left, const Iterator& right) {
+    if (left == right) {
+        return left;
     }
-    Iterator res = begin++;
-    while (begin != end){
-        if (*res < *begin){
-            res = begin;
+    Iterator res = left++;
+    while (left != right) {
+        if (*res < *left) {
+            res = left;
         }
-        begin ++;
+        left ++;
     }
     return res;
 }
 
 /* 返回数值最大的迭代器 return iterator with maximum value */
 template<typename Iterator>
-Iterator max_element(Iterator begin, const Iterator& end){
-    if (begin == end) {
-        return begin;
+inline Iterator max_element(Iterator left, const Iterator& right) {
+    if (left == right) {
+        return left;
     }
-    Iterator res = begin++;
-    while (begin != end){
-        if (*res > *begin){
-            res = begin;
+    Iterator res = left++;
+    while (left != right) {
+        if (*res > *left) {
+            res = left;
         }
-        begin ++;
+        left ++;
     }
     return res;
 }
@@ -70,10 +71,10 @@ inline T max(const std::initializer_list<T>& ls) {
 
 /* reverse all elements! */
 template<typename Iterator>
-inline void reverse(Iterator begin, Iterator end){
-    while (begin != end && begin != --end){
-        mstl::swap(*begin, *end);
-        begin ++;
+inline void reverse(Iterator left, Iterator right) {
+    while (left != right && left != --right) {
+        mstl::swap(*left, *right);
+        left ++;
     }
 }
 
@@ -81,63 +82,63 @@ inline void reverse(Iterator begin, Iterator end){
 
 /* 将范围内迭代器用x填充 */
 template<typename Iterator>
-inline void fill(Iterator begin, const Iterator& end, const typename Iterator::value_type& x){
-    while (begin != end){
-        *begin = x;
-        begin ++;
+inline void fill(Iterator left, const Iterator& right, const typename Iterator::value_type& x) {
+    while (left != right) {
+        *left = x;
+        left ++;
     }
 }
 
 
  /* iota! */
 template<typename Iterator>
-inline void iota(Iterator begin, const Iterator& end, typename Iterator::value_type value){
-    while (begin != end){
-        *begin ++ = value ++;
+inline void iota(Iterator left, const Iterator& right, typename Iterator::value_type value) {
+    while (left != right) {
+        *left ++ = value ++;
     }
 }
 
 /* sort函数，实现思路为内省排序(快排，堆排与插排的结合) */
-template <typename Iterator, typename COMPARE_FUNCTION = mstl::less<typename Iterator::value_type>>
-void sort(Iterator begin, Iterator end, COMPARE_FUNCTION compare_function = COMPARE_FUNCTION()) {
-    algorithm_base::quick_sort_impl<Iterator, typename Iterator::value_type, COMPARE_FUNCTION>(begin, end, compare_function);
+template <typename Iterator, typename Compare = mstl::less<typename Iterator::value_type>>
+inline void sort(Iterator left, Iterator right, Compare compare_function = Compare()) {
+    algorithm_base::quick_sort_impl<Iterator, typename Iterator::value_type, Compare>(left, right, compare_function);
 }
 
 /* 二分查找，要求升序，并且是随机访问容器 */
 /* binary search, for vector, array, deque! */
 /* 返回第一个大于等于x的迭代器 */
 template <typename Iterator, typename = std::enable_if_t<std::is_base_of_v<random_access_iterator_tag, typename Iterator::iterator_category>>>
-Iterator lower_bound(Iterator begin, Iterator end, const typename Iterator::value_type& x){
-    while (begin < end) {
-        auto mid = begin + (end - begin) / 2;
+inline Iterator lower_bound(Iterator left, Iterator right, const typename Iterator::value_type& x) {
+    while (left < right) {
+        auto mid = left + (right - left) / 2;
         if (*mid >= x) {
-            end = mid;
+            right = mid;
         }
         else {
-            begin = mid + 1;
+            left = mid + 1;
         }
     }
-    return begin;
+    return left;
 }
 
 /* 返回第一个大于x的迭代器 */
 template <typename Iterator, typename = std::enable_if_t<std::is_base_of_v<random_access_iterator_tag, typename Iterator::iterator_category>>>
-Iterator upper_bound(Iterator begin, Iterator end, const typename Iterator::value_type& x){
-    while (begin < end) {
-        auto mid = begin + (end - begin) / 2;
+inline Iterator upper_bound(Iterator left, Iterator right, const typename Iterator::value_type& x) {
+    while (left < right) {
+        auto mid = left + (right - left) / 2;
         if (*mid > x) {
-            end = mid;
+            right = mid;
         }
         else {
-            begin = mid + 1;
+            left = mid + 1;
         }
     }
-    return begin;
+    return left;
 }
 
 /* 将有序容器中的重复元素移动到容器末尾(应该是只接受随机迭代器，其他的迭代器要单独设计) */
 template<typename Iterator, typename = std::enable_if_t<std::is_base_of_v<mstl::random_access_iterator_tag, typename Iterator::iterator_category>>>
-Iterator unique(Iterator left, Iterator right) {
+inline Iterator unique(Iterator left, const Iterator& right) {
     if (left == right) {
         return right;
     }

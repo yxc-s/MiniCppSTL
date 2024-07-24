@@ -1,0 +1,148 @@
+#pragma once
+#include "../core/mstl_common"
+#include "../containers/mstl_vector"
+#include <type_traits>       // is_base_of, enable_if
+
+NAMESPACE_MSTL
+
+/* 优先队列（堆） */
+template<typename T, typename Container = mstl::vector<T>, typename Compare = mstl::less<T>>
+class priority_queue{
+    using this_pq_type = priority_queue<T, Container, Compare>;
+public:
+    using value_type       =  T;
+    using pointer          =  T*;
+    using reference        =  T&;
+    using const_pointer    =  const T*;
+    using const_reference  =  const T&;
+    using size_type        =  mstl::size_t;
+
+    /* 构造和析构函数 */
+    priority_queue() = default;
+    priority_queue(const this_pq_type& other): container_(other.container_) {}
+    priority_queue(this_pq_type&& other) noexcept : container_(mstl::move(other.container_)) {}
+    priority_queue(const std::initializer_list<T>& ls) {
+        for (const auto& value : ls) {
+            push(value);
+        }
+    }
+    /* 只接受mstl库的iterator */
+    template<typename InputIterator, typename = std::enable_if_t<std::is_base_of_v<mstl::input_iterator_tag, typename InputIterator::iterator_category>>>
+    priority_queue(InputIterator left, const InputIterator& right) {
+        while (left != right) {
+            push(*left);
+            left ++;
+        }
+    }
+    ~priority_queue() = default;
+
+    /* 向堆中加入元素 */
+    template<typename U, typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<U>, T>>>
+    void push(U&& value) { 
+        container_.push_back(mstl::forward<U>(value));
+        shift_up(container_.size() - 1);
+    }
+    /* 专门增加const类型接口 */
+    void push(const T& value) {
+        container_.push_back(value);
+        shift_up(container_.size() - 1);
+    }
+
+    /* emplace原地构造 */
+    void emplace(const T& value) {
+        push(value);
+    }
+    template<typename... Args>
+    void emplace(Args&&... args) {
+        container_.emplace_back(mstl::forward<Args> (args)...);
+        shift_up(container_.size() - 1);
+    }
+
+    /* 移除堆顶元素 */
+    void pop() {
+        mstl::swap(container_.front(), container_.back());
+        container_.pop_back();
+        shift_down(0);
+    }
+    
+    /* 获取堆顶元素 */
+    reference top()             noexcept { return container_.front(); }
+    const_reference top() const noexcept { return container_.front(); }
+
+    /* 基本函数 */
+    bool empty()          const noexcept { return container_.empty(); }
+    size_type size()      const noexcept { return container_.size(); }
+    size_type capacity()  const noexcept { return container_.capacity(); }
+
+    /* =拷贝赋值 */    
+    this_pq_type& operator =(const this_pq_type& other) {
+        if (this != &other) {
+            container_ = other.container_;
+        }
+        return *this;
+    }
+
+    /* =移动赋值 */
+    this_pq_type& operator =(this_pq_type&& other) noexcept {
+        if (this != &other) {
+            container_ = mstl::move(other.container_);
+        }
+        return *this;
+    }
+
+    /* 友元函数声明 */
+    template<typename U, typename V, typename W>
+    friend bool operator ==(const mstl::priority_queue<U, V, W>&lhs, const mstl::priority_queue<U, V, W>& rhs);
+    template<typename U, typename V, typename W>
+    friend bool operator !=(const mstl::priority_queue<U, V, W>& lhs, const mstl::priority_queue<U, V, W>& rhs);
+
+private:
+    Container container_;
+    Compare   compare_;
+
+private:
+    /* 元素上移 */
+    void shift_up(size_type pos) {
+        while (pos > 0) {
+            size_type par_pos = (pos - 1) / 2;
+            if (compare_(container_[par_pos], container_[pos])) {
+                mstl::swap(container_[par_pos], container_[pos]);
+                pos = par_pos;
+            }
+            else {
+                break;
+            }
+        }
+    }
+    /* 元素下移 */
+    void shift_down(size_type pos) {
+        size_type cur_size = container_.size();
+        while (2 * pos + 1 < cur_size) {
+            size_type child_pos = 2 * pos + 1;
+            if (child_pos + 1 < cur_size && compare_(container_[child_pos], container_[child_pos + 1])) {
+                child_pos ++;
+            }
+            if (compare_(container_[pos], container_[child_pos])) {
+                mstl::swap(container_[pos], container_[child_pos]);
+                pos = child_pos;
+            }
+            else {
+                break;
+            }
+        }
+    }
+};
+
+
+/* 友元比较函数定义 */
+template<typename U, typename V, typename W>
+inline bool operator ==(const mstl::priority_queue<U, V, W>& lhs, const mstl::priority_queue<U, V, W>& rhs) {
+    return lhs.container_ == rhs.container_;
+}
+template<typename U, typename V, typename W>
+inline bool operator !=(const mstl::priority_queue<U, V, W>& lhs, const mstl::priority_queue<U, V, W>& rhs) {
+    return !(lhs == rhs);
+}
+
+
+END_NAMESPACE

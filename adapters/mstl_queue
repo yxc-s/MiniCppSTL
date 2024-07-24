@@ -9,8 +9,8 @@ NAMESPACE_MSTL
 /* 其实queue底层也可以用vector，但是代价太高 */
 template<typename T>
 class queue{
-    using container_type = mstl::deque<T, mstl::Allocator<T>>;
-    using this_queue_type = queue<T>;
+    using container_type   = mstl::deque<T, mstl::Allocator<T>>;
+    using this_queue_type  = queue<T>;
 public:
     using value_type       =  T;
     using reference        =  T&;
@@ -21,7 +21,7 @@ public:
     queue() = default;
 
     /* 拷贝构造函数 */
-    queue(const this_queue_type& other): container_(other.container_){}
+    queue(const this_queue_type& other): container_(other.container_) {}
     
     /* 移动构造函数 */
     queue (this_queue_type&& other) noexcept : container_(mstl::move(other.container_)) {}
@@ -36,20 +36,22 @@ public:
     /* 析构函数 */
     ~queue() = default;
 
+
     /* push元素到队尾 */
     template<typename U, typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<U>, T>>>
-    void push(U&& value) {
-        container_.push_back(mstl::forward<U>(value));
-    }
+    void push(U&& value) { container_.push_back(mstl::forward<U>(value)); }
 
     /* 弹出队头元素 */
-    void pop(){
-        container_.pop_front();
-    }
+    void pop() { container_.pop_front(); }
 
     /* 返回队头元素 */
-    reference front() { return container_.front(); }
-    const_reference front() const { return container_.front(); }
+    reference front()             noexcept { return container_.front(); }
+    const_reference front() const noexcept { return container_.front(); }
+
+    /* 基本函数 */
+    bool empty()         const noexcept { return container_.empty(); }
+    size_type size()     const noexcept { return container_.size(); }
+    size_type capacity() const noexcept { return container_.capacity(); }
 
     /* =拷贝赋值 */
     this_queue_type& operator =(const this_queue_type& other) {
@@ -67,11 +69,6 @@ public:
         return *this;
     }
     
-    /* 基本函数 */
-    size_type size() const { return container_.size(); }
-    size_type capacity() const { return container_.capacity(); }
-    bool empty() const { return container_.empty(); }
-
     /* 友元函数声明 */
     template<typename U>
     friend bool operator ==(const mstl::queue<U>& lhs, const mstl::queue<U>& rhs);

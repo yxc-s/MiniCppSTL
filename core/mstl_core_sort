@@ -4,19 +4,19 @@
 namespace mstl{
     namespace algorithm_base{
     /* 插排 insertion sort! */
-    template<typename Iterator, typename ITER_VALUE_TYPE = typename Iterator::value_type, typename COMPARE_FUNCTION = mstl::less<ITER_VALUE_TYPE>>
-    void insertion_sort_impl(const Iterator& begin, const Iterator& end, const COMPARE_FUNCTION& compare_function = COMPARE_FUNCTION()) {
+    template<typename Iterator, typename ITER_VALUE_TYPE = typename Iterator::value_type, typename Compare = mstl::less<ITER_VALUE_TYPE>>
+    void insertion_sort_impl(const Iterator& begin, const Iterator& end, const Compare& compare_function = Compare()) {
         if (begin == end) { 
             return;
         }
-        for (Iterator it = mstl::next(begin); it != end; ++it){
+        for (Iterator it = mstl::next(begin); it != end; ++it) {
             auto temp = *it;
             auto rt = mstl::prev(it);
-            while (rt != begin && compare_function(temp, *rt)){
+            while (rt != begin && compare_function(temp, *rt)) {
                 *mstl::next(rt) = *rt;
                 --rt;
             }
-            if (rt == begin && compare_function(temp, *rt)){
+            if (rt == begin && compare_function(temp, *rt)) {
                 *mstl::next(rt) = *rt;
                 *rt = temp;
             }
@@ -27,10 +27,10 @@ namespace mstl{
     }
 
     /* 归并排序 */
-    template<typename Iterator, typename ITER_VALUE_TYPE = typename Iterator::value_type, typename COMPARE_FUNCTION = mstl::less<ITER_VALUE_TYPE>>
-    void merge_sort_impl(const Iterator& begin, const Iterator& end, const COMPARE_FUNCTION& compare_function = COMPARE_FUNCTION()){
-        if (end - begin <= 16){
-            insertion_sort_impl<Iterator, ITER_VALUE_TYPE, COMPARE_FUNCTION>(begin, end);
+    template<typename Iterator, typename ITER_VALUE_TYPE = typename Iterator::value_type, typename Compare = mstl::less<ITER_VALUE_TYPE>>
+    void merge_sort_impl(const Iterator& begin, const Iterator& end, const Compare& compare_function = Compare()) {
+        if (end - begin <= 16) {
+            insertion_sort_impl<Iterator, ITER_VALUE_TYPE, Compare>(begin, end);
             return;
         }
         auto middle = begin + (end - begin) / 2;
@@ -62,8 +62,8 @@ namespace mstl{
     }
 
     /* 三数取中法 */
-    template<typename Iterator, typename COMPARE_FUNCTION>
-    Iterator median_of_three(Iterator begin, Iterator end, const COMPARE_FUNCTION& compare_function) {
+    template<typename Iterator, typename Compare>
+    Iterator median_of_three(Iterator begin, Iterator end, const Compare& compare_function) {
         auto middle = begin + ((end - begin) / 2);
         if (compare_function(*middle, *begin)) {
             mstl::swap(*begin, *middle);
@@ -79,8 +79,8 @@ namespace mstl{
     } 
 
     /* 分区函数 */ 
-    template<typename Iterator, typename COMPARE_FUNCTION>
-    inline Iterator partition(Iterator begin, Iterator end, const COMPARE_FUNCTION& compare_function) {
+    template<typename Iterator, typename Compare>
+    inline Iterator partition(Iterator begin, Iterator end, const Compare& compare_function) {
         auto pivot_iter = median_of_three(begin, end, compare_function);
         auto pivot_value = *pivot_iter;
         auto left = begin;
@@ -104,25 +104,25 @@ namespace mstl{
     }
 
     /* 快排 quick sort! */
-    template<typename Iterator, typename ITER_VALUE_TYPE = typename Iterator::value_type, typename COMPARE_FUNCTION = mstl::less<ITER_VALUE_TYPE>>
+    template<typename Iterator, typename ITER_VALUE_TYPE = typename Iterator::value_type, typename Compare = mstl::less<ITER_VALUE_TYPE>>
     void quick_sort_impl(const Iterator& begin, const Iterator& end, 
-        const COMPARE_FUNCTION& compare_function = COMPARE_FUNCTION(), 
+        const Compare& compare_function = Compare(), 
         int max_depth = -1,
         int cur_depth = 0)
     {   
         if (max_depth == -1) {
             max_depth = 2 * mstl::log2(end - begin + 1);
         }
-        if (cur_depth >= max_depth){
-            merge_sort_impl<Iterator, ITER_VALUE_TYPE, COMPARE_FUNCTION>(begin, end);
+        if (cur_depth >= max_depth) {
+            merge_sort_impl<Iterator, ITER_VALUE_TYPE, Compare>(begin, end);
         }
-        else if (end - begin >= 16){
+        else if (end - begin >= 16) {
             auto partition_iter = mstl::algorithm_base::partition(begin, end, compare_function);
             quick_sort_impl(begin, partition_iter, compare_function, max_depth, cur_depth + 1);
             quick_sort_impl(partition_iter + 1, end, compare_function, max_depth, cur_depth + 1);
         }
         else{
-            insertion_sort_impl<Iterator, ITER_VALUE_TYPE, COMPARE_FUNCTION>(begin, end);
+            insertion_sort_impl<Iterator, ITER_VALUE_TYPE, Compare>(begin, end);
         }
     }
 }

@@ -11,8 +11,8 @@ NAMESPACE_MSTL
 
 template<typename T, typename Container = mstl::deque<T, mstl::Allocator<T>, 512, 0>>
 class stack{
-    using container_type = Container;
-    using this_stack_type = stack<T, Container>;
+    using container_type   = Container;
+    using this_stack_type  = stack<T, Container>;
 public:
     using value_type       =  T;
     using reference        =  T&;
@@ -38,6 +38,7 @@ public:
     /* 析构函数 */
     ~stack() = default;
 
+
     /* push元素到栈顶 */
     template<typename U, typename = std::enable_if_t<std::is_same_v<std::remove_reference_t<U>, T>>>
     void push(U&& value) {
@@ -45,13 +46,18 @@ public:
     }
 
     /* 弹出栈顶元素 */
-    void pop(){
+    void pop() {
         container_.pop_back();
     }
 
     /* 返回栈顶元素 */
-    reference top() { return container_.back(); }
-    const_reference top() const { return container_.back(); }
+    reference top()             noexcept { return container_.back(); }
+    const_reference top() const noexcept { return container_.back(); }
+
+    /* 基本函数 */
+    bool empty()         const noexcept { return container_.empty(); }
+    size_type size()     const noexcept { return container_.size(); }
+    size_type capacity() const noexcept { return container_.capacity(); }
 
     /* =拷贝赋值 */    
     this_stack_type& operator =(const this_stack_type& other) {
@@ -68,11 +74,6 @@ public:
         }
         return *this;
     }
-
-    /* 基本函数 */
-    size_type size() const { return container_.size(); }
-    bool empty() const { return container_.empty(); }
-    size_type capacity() const { return container_.capacity(); }
 
     /* 友元函数声明 */
     template<typename U>

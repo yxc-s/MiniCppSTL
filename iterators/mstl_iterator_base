@@ -1,30 +1,26 @@
 #pragma once
 
-#include "../core/mstl_common"
-
-#include <cstddef>  // for std::ptrdiff_t
-
-NAMESPACE_MSTL
+namespace mstl{
 
 namespace container_type_base{
-struct _vector_{};
-struct _array_{};
-struct _deque_{};
-struct _list_{};
-struct set_iterator{};
-struct multiset_iterator{};
-struct map_iterator{};
-struct multimap_iterator{};
+    struct _vector_{};
+    struct _array_{};
+    struct _deque_{};
+    struct _list_{};
+    struct _set_{};
+    struct _multiset_{};
+    struct _map_{};
+    struct _multimap_{};
 }
 
 
 
 /* 奇异递归模板模式(Curiously Recurring Template Pattern) */
+/* 该base提供必要的接口，所有迭代器必须在这个基类上进行派生(正因为此，就不设计单向链表了) */
 template <typename Derived, typename U>
 class iterator_base {
 public:
-    using difference_type  =  std::ptrdiff_t;
-
+    iterator_base() = default;
     virtual ~iterator_base() = default;
 
 
@@ -36,7 +32,10 @@ public:
 
     virtual bool operator==(const Derived& other) const = 0;
     virtual bool operator!=(const Derived& other) const = 0;
+
+    /* 迭代器非常轻量级，通常只包含一两个指针，就不设计移动move = 了 */
+    virtual Derived& operator =(const Derived& other) = 0;
 };
 
 
-END_NAMESPACE
+}/* end namespace mstl*/
