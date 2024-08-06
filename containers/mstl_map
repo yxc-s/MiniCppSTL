@@ -88,7 +88,7 @@ public:
 
     /* Iterator : 注意！这楼里的value_type是红黑树的node类型，pointer也一样，但是，reference是node里面的data类型!! 并且没有->重载! */
     template<typename ValueType, typename ReferenceType, const bool IS_REVERSE>
-    class iterator_impl : public iterator_base<iterator_impl<ValueType, ReferenceType, IS_REVERSE>, ValueType> {
+    class iterator_impl : public iterator_base<iterator_impl<ValueType, ReferenceType, IS_REVERSE>> {
         friend class map_impl<T, U, Compare, Allocator, IS_MULTI>; 
         using map_base_type   =  map_impl<T, U, Compare, Allocator, IS_MULTI>;
         using this_iter_type  =  iterator_impl<ValueType, ReferenceType, IS_REVERSE>;

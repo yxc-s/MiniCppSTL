@@ -96,7 +96,7 @@ public:
     /* Iterator */
     /* 这里的设计引用了一个相关deque父类，在返回内存数据时，要先通过父类计算出下标对应的指针 */
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
-    class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
+    class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>> {
         using this_iter_type = iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>;    
     public:
         using value_type         =   ValueType;

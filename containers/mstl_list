@@ -86,7 +86,7 @@ public:
 
     /* iterator : 类似这种节点里面包装了一层数据的，迭代器的指针成员都是节点类型指针！ 但是迭代器的重载返回的是节点里的数据类型！ */
     template<typename ValueType, typename PointerType, typename ReferenceType, const bool IS_REVERSE = false>
-    class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
+    class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>> {
         using this_iter_type = iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>;
         friend class mstl::list<T, Allocator>;
     public:

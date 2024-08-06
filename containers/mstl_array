@@ -104,7 +104,7 @@ public:
 
      /* Iterator */
     template<typename ValueType = T, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
-    class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>, ValueType> {
+    class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>> {
         using this_iter_type = iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>;
     public:
         using value_type         =   ValueType;

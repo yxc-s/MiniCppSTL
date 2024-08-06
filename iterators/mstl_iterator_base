@@ -17,7 +17,7 @@ namespace container_type_base{
 
 /* 奇异递归模板模式(Curiously Recurring Template Pattern) */
 /* 该base提供必要的接口，所有迭代器必须在这个基类上进行派生(正因为此，就不设计单向链表了) */
-template <typename Derived, typename U>
+template <typename Derived>
 class iterator_base {
 public:
     iterator_base() = default;
