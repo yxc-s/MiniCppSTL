@@ -1,0 +1,218 @@
+#include "../core/mstl_common"
+#include "../allocators/mstl_allocator"
+#include "../utility/mstl_memory"
+#include "../iterators/mstl_iterator_base" 
+
+
+NAMESPACE_MSTL
+
+
+template<typename Allocator = mstl::Allocator<char>>
+class string{
+    using this_string_type = mstl::string<Allocator>;
+public:
+    using value_type       =  char;
+    using pointer          =  char*;
+    using reference        =  char&;
+    using const_pointer    =  const char*;
+    using const_reference  =  const char&;
+    using size_type        =  mstl::size_t;
+    using container_type   =  mstl::container_type_base::_string_;
+
+
+    constexpr const static size_type npos = 0x3f3f3f3f;//?怎么打最大值进去
+
+
+    string();
+    string(const_pointer data);
+    string(size_type size, value_type data);
+    string(const this_string_type& other);
+    string(this_string_type&& other);
+    string(const std::initilizer_list<char>& ls);
+    template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
+    string(Iterator left, const Iterator& right);
+    ~string();
+
+
+    reference& back();
+    const_reference back() const;
+    reference& front();
+    const_reference front() const;
+    reference& operator [](size_type pos);
+    const_reference operator[](size_type pos) const;
+
+    void reserve(size_type size);
+    
+    /* 长度查询系列 */
+    size_type length() const noexcept;
+    size_type size() const noexcept;
+    bool empty() const noexcept;
+    void clear();
+    void resize(size_type size);
+
+    /* find系列函数 */
+    size_type find(const_pointer data);
+    size_type find(const this_string_type& data);
+    size_type find_first_of(const_pointer data, size_t pos = 0);
+    size_type find_first_of(const this_string_type& data, size_t pos = 0);
+    size_type find_last_of(const_pointer data, size_t pos = current_size_ - 1);
+    size_type find_last_of(const this_string_type& data, size_t pos = current_size_ - 1);
+
+    /* 获取子串 */
+    this_string_type substr(size_type pos, size_type size);
+    size_type count(const_pointer data, size_type pos = 0);
+    size_type count(const this_string_type& data, size_type pos = 0);
+    const_pointer data() const noexcept;
+    const_pointer c_str() const noexcept;
+
+    /* 修改字符串系列函数 */
+    void append(const_pointer data);
+    void append(const this_string_type& other);
+    void push_back(const_pointer data);
+    void push_back(const this_string_type& other);
+    void pop_back();
+    void replace(size_type pos, size_type size, const_pointer data);
+    void replace(size_type pos, size_type size, const this_string_type& data);
+    void insert(size_type pos, const_pointer data);
+    void insert(size_type pos, const this_string_type& other);
+    void erase(size_type pos, size_type size);
+
+    /* 运算符重载 */
+    this_string_type& operator =(const_pointer other);
+    this_string_type& operator =(const this_string_type& other);
+    this_string_type& operator =(this_string_type&& other);
+    this_string_type& operator +=(const value_type& value);
+    this_string_type& operator +=(const_pointer other);
+    this_string_type& operator +=(const this_string_type& other);
+
+    /* 友元运算符 */
+    friend bool operator ==(const mstl::string& lhs, const mstl::string& rhs);
+    friend bool operator !=(const mstl::string& lhs, const mstl::string& rhs);
+    template<typename Allocator = mstl::Allocator>
+    mstl::string<Allocator> operator +(const mstl::string& lhs, const mstl::string& rhs); 
+
+    /* Iterator */
+    //直接从vector拷贝过来的，感觉没啥问题，可以直接用
+    template<typename ValueType = char, typename PointerType = ValueType*, typename ReferenceType = ValueType&, const bool IS_REVERSE = false>
+    class iterator_impl : public iterator_base<iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>> {
+        using this_iter_type = iterator_impl<ValueType, PointerType, ReferenceType, IS_REVERSE>;
+    public:
+        using value_type         =   ValueType;
+        using pointer            =   PointerType;
+        using reference          =   ReferenceType;
+        using difference_type    =   std::ptrdiff_t;
+        using iterator_category  =   mstl::random_access_iterator_tag;
+        using container_type     =   mstl::container_type_base::_string_;
+
+
+        iterator_impl(pointer ptr) : ptr_(ptr) {}
+        ~iterator_impl() override = default;
+
+
+        reference operator*() const { return *ptr_; }
+        pointer operator->()  { return ptr_; }
+
+        iterator_impl& operator++() override { 
+            if constexpr (IS_REVERSE) {
+                -- ptr_;
+            }
+            else{
+                ++ptr_; 
+            }
+            return *this; 
+        }
+
+        iterator_impl operator++(int) override { 
+            iterator_impl new_iter = *this; 
+            if constexpr (IS_REVERSE) {
+                --(*this);
+            }
+            else{
+                ++(*this); 
+            }
+            return new_iter; 
+        }
+
+        iterator_impl& operator--() override { 
+            if constexpr (IS_REVERSE) {
+                ++ptr_;
+            }
+            else{
+                --ptr_; 
+            }
+            return *this; 
+        }
+
+        iterator_impl operator--(int) override { 
+            iterator_impl new_iter = *this;
+            if constexpr (IS_REVERSE) {
+                ++(*this);
+            } else {
+                --(*this);
+            }
+            return new_iter; 
+        }
+
+        iterator_impl operator+(difference_type offset) const { 
+            if constexpr (IS_REVERSE) {
+                return iterator_impl(ptr_ - offset);
+            } else {
+                return iterator_impl(ptr_ + offset);
+            }
+        }
+
+        iterator_impl operator-(difference_type offset) const { 
+            if constexpr (IS_REVERSE) {
+                return iterator_impl(ptr_ + offset);
+            } else {
+                return iterator_impl(ptr_ - offset);
+            }
+        }
+
+        difference_type operator-(const this_iter_type& other) const { return ptr_ - other.ptr_; }
+        virtual bool operator==(const this_iter_type& other) const override{ return ptr_ == other.ptr_; }
+        virtual bool operator!=(const this_iter_type& other) const override{ return !(*this == other);}
+        bool operator <(const this_iter_type& other) const { return ptr_ < other.ptr_; }
+        bool operator <=(const this_iter_type& other) const { return ptr_ <= other.ptr_; }
+        bool operator >(const this_iter_type& other) const { return !(*this <= other); }
+        bool operator >=(const this_iter_type& other) const { return !(*this < other); }
+        virtual this_iter_type& operator =(const this_iter_type& other) override{
+            if (this != &other) {
+                ptr_ = other.ptr_;
+            }
+            return *this;
+        }
+
+    private:
+        pointer ptr_;
+    };
+
+    /* 四种迭代器类型 */
+    using iterator = iterator_impl<value_type>;
+    using const_iterator = iterator_impl<const value_type, const_pointer, const_reference>;
+    using reverse_iterator = iterator_impl<value_type, pointer, reference, true>;
+    using const_reverse_iterator = iterator_impl<const value_type, const_pointer, const_reference, true>;
+
+    /* 正向迭代器相关函数 */
+    iterator begin() { return iterator(data_ptr_); }
+    iterator end()   { return iterator(data_ptr_ + current_size_); }
+    const_iterator cbegin() { return const_iterator(data_ptr_); } 
+    const_iterator cend() { return const_iterator(data_ptr_ + current_size_); }
+
+    /* 逆向迭代器相关函数 */
+    reverse_iterator rbegin() { return reverse_iterator(data_ptr_ + current_size_ - 1); }
+    reverse_iterator rend() { return reverse_iterator(data_ptr_ - 1); }
+    const_reverse_iterator crbegin() { return const_reverse_iterator(data_ptr_ + current_size_ - 1); }
+    const_reverse_iterator crend() { return const_reverse_iterator(data_ptr_ - 1); }
+
+
+private:
+    Allocator   allocator_;
+    pointer     data_;
+    size_type   current_size_;
+    size_type   capacity_;
+
+};
+
+
+END_NAMESPACE

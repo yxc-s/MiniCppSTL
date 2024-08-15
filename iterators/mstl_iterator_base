@@ -4,6 +4,7 @@ namespace mstl{
 
 namespace container_type_base{
     struct _vector_{};
+    struct _string_{};
     struct _array_{};
     struct _deque_{};
     struct _list_{};

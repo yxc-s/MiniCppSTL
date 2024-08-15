@@ -17,7 +17,7 @@ using namespace std;
 int main() {
 
     //vector
-#if 1
+#if 0
 {
     mstl::vector<int> my_vec_a(10, -1);
     mstl::vector<int> my_vec_b(10, -1);
@@ -123,7 +123,7 @@ int main() {
 
 
 //array
-#if 1
+#if 0
 {
     mstl::array<int, 23> t {1,2,3};
    // t[0] = 5;
@@ -151,14 +151,14 @@ int main() {
 #endif
 
 //pair
-#if 1
+#if 0
 {
     mstl::pair<int, int> a_p{2, 2};
     mstl::pair<int, int> ba_p{2, 2};
     cout << ( a_p <= ba_p);
 }
 #endif
-#if 1
+#if 0
     {
         mstl::vector<int> a((int)1e2);
         int t = 1;
@@ -173,7 +173,7 @@ int main() {
 #endif
 
 //deque
-#if 1
+#if 0
     {
         mstl::deque<int> a{1,2,3,4,5};
         //cout << a.size() << endl;
@@ -263,7 +263,7 @@ int main() {
 
 
 //红黑树测试，好像测试不了，得先继承才行。。
-#if 1
+#if 0
     {   
         mstl::multiset<int> s;
         s.insert(2);
@@ -321,7 +321,7 @@ int main() {
     }
 #endif
 
-#if 1
+#if 0
     {
         mstl::map<int, int> mapp;
         mapp.insert(mstl::pair{2, 3});
@@ -367,7 +367,7 @@ int main() {
 
 //stack
 
-#if 1
+#if 0
     {
         mstl::stack<int> a{2,3,4,5,61};
         cout << a.size() << endl;
@@ -381,7 +381,7 @@ int main() {
 
 
 //list
-#if 1
+#if 0
     {   
         std::cout << "list: initializer list test\n";
         mstl::list<int> a{2,3,4,5,6};
@@ -448,7 +448,7 @@ int main() {
 
 
 // priority_queue
-#if 1
+#if 0
     {
         mstl::priority_queue<int, std::vector<int>, std::less<int>> pq{1,2,3};
         cout << pq.size() << endl;
@@ -484,5 +484,7 @@ int main() {
     }
 #endif
     
+    
+
     return 0;
 }
