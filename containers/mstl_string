@@ -2,11 +2,13 @@
 #include "../allocators/mstl_allocator"
 #include "../utility/mstl_memory"
 #include "../iterators/mstl_iterator_base" 
-
+#include <string.h> //memcpy
+#include <iostream>//cout, cin
 
 NAMESPACE_MSTL
 
 
+//TODO:运算符重载，字符串插入修改替换，友元函数重载, KMP_SEARCH?
 template<typename Allocator = mstl::Allocator<char>>
 class string{
     using this_string_type = mstl::string<Allocator>;
@@ -22,7 +24,7 @@ public:
 
     constexpr const static size_type npos = static_cast<size_type>(-1);//?怎么打最大值进去
 
-
+    /* 构造和析构函数 */
     string();
     string(const_pointer data);
     string(size_type size, value_type data);
@@ -33,37 +35,56 @@ public:
     string(Iterator left, const Iterator& right);
     ~string();
 
+    /* 简短小函数 */
+    reference& back() { return data_ptr_[current_size_ - 1]; }
+    const_reference back() const { return data_ptr_[current_size_ - 1]; }
+    reference& front() { return data_ptr_[0]; }
+    const_reference front() const { return data_ptr_[0]; }
+    reference& operator [](size_type pos) { return data_ptr_[pos]; }
+    const_reference operator[](size_type pos) const { return data_ptr_[pos]; }
 
-    reference& back();
-    const_reference back() const;
-    reference& front();
-    const_reference front() const;
-    reference& operator [](size_type pos);
-    const_reference operator[](size_type pos) const;
-
+    /* 内存控制 */
     void reserve(size_type size);
     
     /* 长度查询系列 */
-    size_type length() const noexcept;
-    size_type size() const noexcept;
-    bool empty() const noexcept;
-    void clear();
-    void resize(size_type size);
+    size_type length() const noexcept { return current_size_; }
+    size_type size() const noexcept { return current_size_; }
+    bool empty() const noexcept { return current_size_ == 0; }
+    void clear() { current_size_ = 0; }
+    void resize(size_type size) {
+        if (size > capacity_) {
+            reserve(current_size_);
+        }
+        current_size_ = size;
+    }
 
     /* find系列函数 */
-    size_type find(const_pointer data);
-    size_type find(const this_string_type& data);
+    size_type find(value_type ch, size_t pos = 0);
+    size_type find(const_pointer data, size_t pos = 0);
+    size_type find(const this_string_type& data, size_t pos = 0);
+    size_type find_first_of(value_type ch, size_type pos = 0);
     size_type find_first_of(const_pointer data, size_type pos = 0);
     size_type find_first_of(const this_string_type& data, size_type pos = 0);
+    size_type find_last_of(value_type ch, size_type pos = npos);
     size_type find_last_of(const_pointer data, size_type pos = npos);
     size_type find_last_of(const this_string_type& data, size_type pos = npos);
 
     /* 获取子串 */
-    this_string_type substr(size_type pos, size_type size);
-    size_type count(const_pointer data, size_type pos = 0);
-    size_type count(const this_string_type& data, size_type pos = 0);
-    const_pointer data() const noexcept;
-    const_pointer c_str() const noexcept;
+    this_string_type substr(size_type pos, size_type size) {
+        if (size > current_size_ - pos) {
+            size = current_size_ - pos;
+        }
+        //TODO:异常检查机制
+        this_string_type res;
+        res.resize(size);
+        size_type i = 0;
+        while (size--) {
+            res[i++] = data_ptr_[pos++]; 
+        }
+        return res;
+    }
+    const_pointer data() const noexcept { return data_ptr_; }
+    const_pointer c_str() const noexcept { return data_ptr_; }
 
     /* 修改字符串系列函数 */
     void append(const_pointer data);
@@ -94,6 +115,12 @@ public:
 
     template<typename T>
     friend mstl::string<T> operator +(const mstl::string<T>& lhs, const mstl::string<T>& rhs); 
+
+    template<typename T>
+    friend std::istream& operator >>(std::istream& is, string<T>& s);
+
+    template<typename T>
+    friend std::ostream& operator <<(std::ostream& os, const string<T>& s);
 
     /* Iterator */
     //直接从vector拷贝过来的，感觉没啥问题，可以直接用
@@ -227,13 +254,13 @@ private:
 
 /* 默认构造函数 */
 template<typename Allocator>
-string<Allocator>::string():current_size_(0), capacity_(2){
+inline string<Allocator>::string():current_size_(0), capacity_(2){
     data_ptr_ = allocator_.allocate(2);
 }
 
 /* c字符串构造函数 */
 template<typename Allocator>
-string<Allocator>::string(const_pointer data): current_size_(get_c_str_len(data)), capacity_(current_size_ + 2) {
+inline string<Allocator>::string(const_pointer data): current_size_(get_c_str_len(data)), capacity_(current_size_ + 2) {
     data_ptr_ = allocator_.allocate(capacity_);
     memcpy(data_ptr_, data, sizeof(char) * current_size_);
     data_ptr_[current_size_] = '\0';
@@ -241,7 +268,7 @@ string<Allocator>::string(const_pointer data): current_size_(get_c_str_len(data)
 
 /* 数量+字符构造函数 */
 template<typename Allocator>
-string<Allocator>::string(size_type size, value_type ch): current_size_(size), capacity_(size + 2) {
+inline string<Allocator>::string(size_type size, value_type ch): current_size_(size), capacity_(size + 2) {
     data_ptr_ = allocator_.allocate(capacity_);
     std::memset(data_ptr_, ch, current_size_);
     data_ptr_[current_size_] = '\0';
@@ -249,14 +276,14 @@ string<Allocator>::string(size_type size, value_type ch): current_size_(size), c
 
 /* 拷贝构造函数 */
 template<typename Allocator>
-string<Allocator>::string(const this_string_type& other): current_size_(other.current_size_), capacity_(other.capacity_) {
+inline string<Allocator>::string(const this_string_type& other): current_size_(other.current_size_), capacity_(other.capacity_) {
     data_ptr_ = allocator_.allocate(capacity_);
     std::memcpy(data_ptr_, other.data_ptr_, current_size_ + 1);
 }
 
 /* 移动构造函数 */
 template<typename Allocator>
-string<Allocator>::string(this_string_type&& other) noexcept : data_ptr_(other.data_ptr_), current_size_(other.current_size_), capacity_(other.capacity_) {
+inline string<Allocator>::string(this_string_type&& other) noexcept : data_ptr_(other.data_ptr_), current_size_(other.current_size_), capacity_(other.capacity_) {
     other.data_ptr_ = nullptr;
     other.current_size_ = 0;
     other.capacity_ = 0;
@@ -264,7 +291,7 @@ string<Allocator>::string(this_string_type&& other) noexcept : data_ptr_(other.d
 
 /* 初始化列表构造 */
 template<typename Allocator>
-string<Allocator>::string(const std::initializer_list<char>& ls): current_size_(ls.size()), capacity_(current_size_ + 2) {
+inline string<Allocator>::string(const std::initializer_list<char>& ls): current_size_(ls.size()), capacity_(current_size_ + 2) {
     data_ptr_ = allocator_.allocate(capacity_);
     size_type i = 0;
     for (const auto& c : ls) {
@@ -276,7 +303,7 @@ string<Allocator>::string(const std::initializer_list<char>& ls): current_size_(
 /* 迭代器构造函数 */
 template<typename Allocator>
 template<typename Iterator, typename>
-string<Allocator>::string(Iterator first, const Iterator& last){
+inline string<Allocator>::string(Iterator first, const Iterator& last){
     current_size_ = last - first;
     capacity_ = current_size_ + 2;
     data_ptr_ = allocator_.allocate(capacity_);
@@ -290,9 +317,113 @@ string<Allocator>::string(Iterator first, const Iterator& last){
 
 /* 析构函数 */
 template<typename Allocator>
-string<Allocator>::~string(){
+inline string<Allocator>::~string(){
     allocator_.deallocate(data_ptr_, capacity_);
 }
+
+/* 分配指定大小内存 */
+template<typename Allocator>
+inline void string<Allocator>::reserve(size_type size) {
+    if (size > capacity_) {
+        pointer new_pointer = allocator_.allocate(size);
+        memcpy(new_pointer, data_ptr_, sizeof(char) * current_size_);
+        new_pointer[current_size_] = '\0';
+        allocator_.deallocate(data_ptr_, current_size_);
+        data_ptr_ = new_pointer;
+        capacity_ = size;
+    }
+}
+
+template<typename Allocator>
+inline typename string<Allocator>::size_type string<Allocator>::find(value_type ch, size_t pos) {
+    while (pos <= current_size_) {
+        if (data_ptr_[pos] == ch) {
+            return pos;
+        }
+        ++pos;
+    }
+    return npos;
+}
+
+template<typename Allocator>
+inline typename string<Allocator>::size_type string<Allocator>::find(const_pointer data, size_t pos) {
+    size_type data_len = get_c_str_len(data);
+    size_type i = pos, j = 0;
+    while (i + data_len <= current_size_) {
+        j = 0;
+        for (size_type k = i; j < data_len; ++j, ++k) {
+            if (data_ptr_[k] != data[j]) {
+                break;
+            }
+        }
+        if (j == data_len) {
+            return i;
+        }
+        i ++;
+    }
+    return npos;
+}
+
+template<typename Allocator>
+inline typename string<Allocator>::size_type string<Allocator>::find(const this_string_type& data, size_t pos) {
+    return find(data.c_str(), pos);
+}
+
+template<typename Allocator>
+inline typename string<Allocator>::size_type string<Allocator>::find_first_of(value_type ch, size_type pos) {
+    return find(ch, pos);
+}
+
+template<typename Allocator>
+inline typename string<Allocator>::size_type string<Allocator>::find_first_of(const_pointer data, size_type pos) {
+    return find(data, pos);
+}
+
+template<typename Allocator>
+inline typename string<Allocator>::size_type string<Allocator>::find_first_of(const this_string_type& data, size_type pos) {
+    return find(data.c_str(), pos);
+}
+
+template<typename Allocator>
+inline typename string<Allocator>::size_type string<Allocator>::find_last_of(value_type ch, size_type pos) {
+    if (pos == npos) {
+        pos = current_size_ - 1;
+    }
+    while (pos >= 0) {
+        if (data_ptr_[pos] == ch) {
+            return pos;
+        }
+    }
+    return npos;
+}
+
+template<typename Allocator>
+inline typename string<Allocator>::size_type string<Allocator>::find_last_of(const_pointer data, size_type pos) {
+    if (pos == npos) {
+        pos = current_size_ - 1;
+    }
+    size_type data_len = get_c_str_len(data);
+    size_type i = current_size_ - data_len;
+    while (i >= 0) {
+        size_type j = 0;
+        for (size_type k = i; j < data_len; ++k, ++j) {
+            if (data_ptr_[k] != data[j]) {
+                break;
+            }
+        }
+        if (j == data_len) {
+            return i;
+        }
+        i --;
+    } 
+    return npos;
+}
+
+template<typename Allocator>
+inline typename string<Allocator>::size_type string<Allocator>::find_last_of(const this_string_type& data, size_type pos){
+    return find_last_of(data.c_str(), pos);
+}
+
 
 
 END_NAMESPACE
