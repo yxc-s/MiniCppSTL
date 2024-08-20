@@ -20,15 +20,15 @@ public:
     using container_type   =  mstl::container_type_base::_string_;
 
 
-    constexpr const static size_type npos = 0x3f3f3f3f;//?怎么打最大值进去
+    constexpr const static size_type npos = static_cast<size_type>(-1);//?怎么打最大值进去
 
 
     string();
     string(const_pointer data);
     string(size_type size, value_type data);
     string(const this_string_type& other);
-    string(this_string_type&& other);
-    string(const std::initilizer_list<char>& ls);
+    string(this_string_type&& other) noexcept;
+    string(const std::initializer_list<char>& ls);
     template<typename Iterator, typename = std::enable_if_t<std::is_same_v<typename Iterator::container_type, container_type>>>
     string(Iterator left, const Iterator& right);
     ~string();
@@ -53,10 +53,10 @@ public:
     /* find系列函数 */
     size_type find(const_pointer data);
     size_type find(const this_string_type& data);
-    size_type find_first_of(const_pointer data, size_t pos = 0);
-    size_type find_first_of(const this_string_type& data, size_t pos = 0);
-    size_type find_last_of(const_pointer data, size_t pos = current_size_ - 1);
-    size_type find_last_of(const this_string_type& data, size_t pos = current_size_ - 1);
+    size_type find_first_of(const_pointer data, size_type pos = 0);
+    size_type find_first_of(const this_string_type& data, size_type pos = 0);
+    size_type find_last_of(const_pointer data, size_type pos = npos);
+    size_type find_last_of(const this_string_type& data, size_type pos = npos);
 
     /* 获取子串 */
     this_string_type substr(size_type pos, size_type size);
@@ -80,16 +80,20 @@ public:
     /* 运算符重载 */
     this_string_type& operator =(const_pointer other);
     this_string_type& operator =(const this_string_type& other);
-    this_string_type& operator =(this_string_type&& other);
+    this_string_type& operator =(this_string_type&& other) noexcept;
     this_string_type& operator +=(const value_type& value);
     this_string_type& operator +=(const_pointer other);
     this_string_type& operator +=(const this_string_type& other);
 
     /* 友元运算符 */
-    friend bool operator ==(const mstl::string& lhs, const mstl::string& rhs);
-    friend bool operator !=(const mstl::string& lhs, const mstl::string& rhs);
-    template<typename Allocator = mstl::Allocator>
-    mstl::string<Allocator> operator +(const mstl::string& lhs, const mstl::string& rhs); 
+    template<typename T>
+    friend bool operator ==(const mstl::string<T>& lhs, const mstl::string<T>& rhs);
+
+    template<typename T>
+    friend bool operator !=(const mstl::string<T>& lhs, const mstl::string<T>& rhs);
+
+    template<typename T>
+    friend mstl::string<T> operator +(const mstl::string<T>& lhs, const mstl::string<T>& rhs); 
 
     /* Iterator */
     //直接从vector拷贝过来的，感觉没啥问题，可以直接用
@@ -207,12 +211,88 @@ public:
 
 
 private:
+    constexpr static size_type get_c_str_len(const_pointer data) noexcept {
+        size_type res = 0;
+        for (; data[res] != '\0'; ++res);
+        return res;
+    }
+
+private:
     Allocator   allocator_;
-    pointer     data_;
+    pointer     data_ptr_;
     size_type   current_size_;
     size_type   capacity_;
 
 };
+
+/* 默认构造函数 */
+template<typename Allocator>
+string<Allocator>::string():current_size_(0), capacity_(2){
+    data_ptr_ = allocator_.allocate(2);
+}
+
+/* c字符串构造函数 */
+template<typename Allocator>
+string<Allocator>::string(const_pointer data): current_size_(get_c_str_len(data)), capacity_(current_size_ + 2) {
+    data_ptr_ = allocator_.allocate(capacity_);
+    memcpy(data_ptr_, data, sizeof(char) * current_size_);
+    data_ptr_[current_size_] = '\0';
+}
+
+/* 数量+字符构造函数 */
+template<typename Allocator>
+string<Allocator>::string(size_type size, value_type ch): current_size_(size), capacity_(size + 2) {
+    data_ptr_ = allocator_.allocate(capacity_);
+    std::memset(data_ptr_, ch, current_size_);
+    data_ptr_[current_size_] = '\0';
+}
+
+/* 拷贝构造函数 */
+template<typename Allocator>
+string<Allocator>::string(const this_string_type& other): current_size_(other.current_size_), capacity_(other.capacity_) {
+    data_ptr_ = allocator_.allocate(capacity_);
+    std::memcpy(data_ptr_, other.data_ptr_, current_size_ + 1);
+}
+
+/* 移动构造函数 */
+template<typename Allocator>
+string<Allocator>::string(this_string_type&& other) noexcept : data_ptr_(other.data_ptr_), current_size_(other.current_size_), capacity_(other.capacity_) {
+    other.data_ptr_ = nullptr;
+    other.current_size_ = 0;
+    other.capacity_ = 0;
+}
+
+/* 初始化列表构造 */
+template<typename Allocator>
+string<Allocator>::string(const std::initializer_list<char>& ls): current_size_(ls.size()), capacity_(current_size_ + 2) {
+    data_ptr_ = allocator_.allocate(capacity_);
+    size_type i = 0;
+    for (const auto& c : ls) {
+        data_ptr_[i++] = c;
+    }
+    data_ptr_[current_size_] = '\0';
+}
+
+/* 迭代器构造函数 */
+template<typename Allocator>
+template<typename Iterator, typename>
+string<Allocator>::string(Iterator first, const Iterator& last){
+    current_size_ = last - first;
+    capacity_ = current_size_ + 2;
+    data_ptr_ = allocator_.allocate(capacity_);
+    size_type i = 0;
+    while (first != last) {
+        data_ptr_[i++] = *first;
+        first ++;
+    }
+    data_ptr_[current_size_] = '\0';
+}
+
+/* 析构函数 */
+template<typename Allocator>
+string<Allocator>::~string(){
+    allocator_.deallocate(data_ptr_, capacity_);
+}
 
 
 END_NAMESPACE

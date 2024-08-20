@@ -9,6 +9,7 @@
 #include "adapters/mstl_queue"
 #include "containers/mstl_list"
 #include "adapters/mstl_priority_queue"
+#include "containers/mstl_string"
 
 #include <bits/stdc++.h>
 using namespace std;
